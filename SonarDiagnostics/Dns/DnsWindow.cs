@@ -1,6 +1,6 @@
 ﻿using Dalamud.Interface.Windowing;
 using System;
-using Dalamud.Bindings.ImGui;
+using ImGuiNET;
 using Dalamud.Plugin.Services;
 using System.ComponentModel.Composition;
 using DryIocAttributes;

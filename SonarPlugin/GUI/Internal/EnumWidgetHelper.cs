@@ -1,5 +1,5 @@
 ﻿using AG.EnumLocalization;
-using Dalamud.Bindings.ImGui;
+using ImGuiNET;
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;

@@ -1,6 +1,6 @@
 ﻿using Dalamud.Interface.Windowing;
 using DryIoc.ImTools;
-using Dalamud.Bindings.ImGui;
+using ImGuiNET;
 using Sonar;
 using Sonar.Enums;
 using Sonar.Models;

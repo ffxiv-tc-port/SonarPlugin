@@ -1,5 +1,5 @@
 ﻿using Dalamud.Interface.Windowing;
-using Dalamud.Bindings.ImGui;
+using ImGuiNET;
 using Sonar;
 using Sonar.Config;
 using Sonar.Data;

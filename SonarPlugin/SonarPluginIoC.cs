@@ -19,7 +19,6 @@ using Dalamud.Plugin.Services;
 using SonarUtils.Text.Placeholders;
 using SonarUtils.Secrets;
 using Microsoft.Extensions.DependencyInjection;
-using Dalamud.Plugin.VersionInfo;
 using DryIoc.MefAttributedModel;
 using SonarUtils;
 using Microsoft.Extensions.Logging;
@@ -39,7 +38,7 @@ namespace SonarPlugin
 
         private SonarPluginStub Stub { get; }
         public IDalamudPluginInterface PluginInterface { get; }
-        public IDalamudVersionInfo DalamudVersion { get; }
+        private DalamudServices Services { get; }
         private IDataManager Data { get; }
         private ILogger Logger { get; }
 
@@ -47,11 +46,11 @@ namespace SonarPlugin
         {
             this.Stub = stub;
             this.PluginInterface = pluginInterface;
+            this.Services = pluginInterface.Create<DalamudServices>()!;
 
             this._container = this.CreateContainer();
 
             this.Data = this._container.Resolve<IDataManager>();
-            this.DalamudVersion = this._container.Resolve<IDalamudVersionInfo>();
             this.Logger = this._container.Resolve<ILogger<SonarPluginIoC>>();
         }
 
@@ -79,7 +78,7 @@ namespace SonarPlugin
                     SonarLanguage.English;
             }
 
-            var versionInfo = VersionUtils.GetSonarVersionModel(this.Data, this.PluginInterface, this.DalamudVersion);
+            var versionInfo = VersionUtils.GetSonarVersionModel(this.Data, this.PluginInterface);
             var client = new SonarClient(startInfo) { VersionInfo = versionInfo };
             Database.DefaultLanguage = this.Data.Language switch
             {
@@ -114,7 +113,7 @@ namespace SonarPlugin
             container.RegisterExports(typeof(SonarPluginIoC).Assembly, typeof(SonarEventManager).Assembly);
 
             // Logging Services
-            container.RegisterInstance(this.PluginInterface.GetRequiredService<IPluginLog>(), setup: Setup.With(preventDisposal: true));
+            container.RegisterInstance(this.Services.PluginLog, setup: Setup.With(preventDisposal: true));
             container.RegisterMany(Made.Of(() => new LoggerFactory(Arg.Of<IEnumerable<ILoggerProvider>>())), Reuse.Singleton);
             container.Register(typeof(ILogger<>), typeof(PluginLoggerAdapter<>), Reuse.Singleton);
             container.AddPluginLogger();
@@ -138,19 +137,17 @@ namespace SonarPlugin
 
             // Dalamud Services
             container.RegisterInstance(this.PluginInterface, setup: Setup.With(preventDisposal: true)); // Dispose is [Obsolete]
-            container.RegisterDelegate(this.PluginInterface.GetRequiredService<IFramework>, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(this.PluginInterface.GetRequiredService<ICondition>, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(this.PluginInterface.GetRequiredService<IClientState>, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(this.PluginInterface.GetRequiredService<IPlayerState>, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(this.PluginInterface.GetRequiredService<IGameGui>, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(this.PluginInterface.GetRequiredService<IChatGui>, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(this.PluginInterface.GetRequiredService<ICommandManager>, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(this.PluginInterface.GetRequiredService<IFateTable>, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(this.PluginInterface.GetRequiredService<IObjectTable>, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(this.PluginInterface.GetRequiredService<ISigScanner>, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(this.PluginInterface.GetRequiredService<IDataManager>, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(this.PluginInterface.GetRequiredService<ITextureProvider>, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(this.PluginInterface.GetDalamudVersion, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
+            container.RegisterDelegate(() => this.Services.Framework, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
+            container.RegisterDelegate(() => this.Services.Condition, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
+            container.RegisterDelegate(() => this.Services.ClientState, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
+            container.RegisterDelegate(() => this.Services.GameGui, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
+            container.RegisterDelegate(() => this.Services.ChatGui, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
+            container.RegisterDelegate(() => this.Services.CommandManager, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
+            container.RegisterDelegate(() => this.Services.FateTable, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
+            container.RegisterDelegate(() => this.Services.ObjectTable, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
+            container.RegisterDelegate(() => this.Services.SigScanner, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
+            container.RegisterDelegate(() => this.Services.DataManager, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
+            container.RegisterDelegate(() => this.Services.TextureProvider, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
 
             // Additional Dalamud Services
             container.RegisterMany(Made.Of(request => ServiceInfo.Of<IDalamudPluginInterface>(), pluginInterface => pluginInterface.UiBuilder), Reuse.Singleton, Setup.With(preventDisposal: true));
