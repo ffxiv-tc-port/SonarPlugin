@@ -1,5 +1,5 @@
 ﻿{
-  "Author": "Sonar Team",
+  "Author": "Sonar Team, Lother",
   "Name": "Sonar",
   "Punchline": "Automatically send and receive hunt and fate relays.",
   "Description": "Automatically send and receive hunt and fate relays. /sonar to open, /sonarconfig to configure. Support is only provided in the Sonar Support discord.",
@@ -19,7 +19,7 @@
   "CategoryTags": [
     "utility"
   ],
-  "RepoUrl": "https://discord.gg/K7y24Rr",
+  "RepoUrl": "https://github.com/Lother/SonarPlugin",
   "TODO1": "To be replaced once supportInfo is implemented DIP53: https://github.com/FFXIV-Sonar/SonarDistrib",
   "IconUrl": "https://assets.ffxivsonar.com/dalamud/logo.png",
   "ImageUrls": [
