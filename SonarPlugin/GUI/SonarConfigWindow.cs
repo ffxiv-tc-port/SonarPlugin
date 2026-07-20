@@ -331,10 +331,10 @@ namespace SonarPlugin.GUI
                     using var indent = ImRaii.PushIndent();
                     using (var color = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow))
                     {
-                        ImGui.TextUnformatted("Localization is still in development!");
-                        ImGui.TextUnformatted("- Lots of strings are still not covered");
-                        ImGui.TextUnformatted("- Strings may change between releases");
-                        ImGui.TextUnformatted("Use localization at your own risk!");
+                        ImGui.TextUnformatted("在地化功能仍在開發中！");
+                        ImGui.TextUnformatted("- 仍有許多字串尚未涵蓋");
+                        ImGui.TextUnformatted("- 字串內容可能會隨版本更新而變動");
+                        ImGui.TextUnformatted("使用在地化功能請自行承擔風險！");
                     }
                     this._save |= SonarWidgets.Localization(this.Plugin.Configuration.Localization, this.FileDialogs);
                 }
@@ -991,7 +991,7 @@ namespace SonarPlugin.GUI
                 ImGui.Text($"{this.Stub.PluginName} v{Assembly.GetExecutingAssembly().GetName().Version}");
                 ImGui.Text($"{Loc.Localize("AboutSonarBroughtBy", "Brought to you by the Sonar Team")}");
 
-                if (ImGui.Button("Sonar Support Discord##SonarDiscord"))
+                if (ImGui.Button("Sonar 支援 Discord##SonarDiscord"))
                 {
                     this._tasker.AddTask(Task.Run(() => { ShellExecute("https://discord.gg/K7y24Rr"); }));
                 }
@@ -999,7 +999,7 @@ namespace SonarPlugin.GUI
 
                 ImGui.SameLine();
 
-                if (ImGui.Button("Sonar Patreon##SonarPatreon"))
+                if (ImGui.Button("Sonar Patreon 贊助##SonarPatreon"))
                 {
                     this._tasker.AddTask(Task.Run(() => { ShellExecute("https://www.patreon.com/ffxivsonar"); }));
                 }
@@ -1042,7 +1042,7 @@ namespace SonarPlugin.GUI
         {
             ImGui.BeginChild("##debugTabScrollRegion");
             {
-                ImGui.Text("Version Information");
+                ImGui.Text("版本資訊");
                 ImGui.BeginChild("##debugVersionInfo", new Vector2(0, 100 * ImGui.GetIO().FontGlobalScale), true, ImGuiWindowFlags.None);
                 {
                     ImGui.Text($"{this.Stub.PluginName} v{Assembly.GetExecutingAssembly().GetName().Version}");
@@ -1050,23 +1050,23 @@ namespace SonarPlugin.GUI
                     ImGui.Text($"Dalamud {typeof(Dalamud.Utility.Util).Assembly.GetName().Version}");
                     ImGui.Text($"FFXIV {VersionUtils.GetGameVersion(this.Data)}");
 
-                    ImGui.Text($"Client Hash: ");
+                    ImGui.Text($"客戶端雜湊值: ");
                     ImGui.SameLine();
                     if (this._showClientHash)
                     {
-                        ImGui.Text($"{this.Client.ClientHash ?? "Unknown"}");
+                        ImGui.Text($"{this.Client.ClientHash ?? "未知"}");
                         ImGui.SameLine();
                     }
 
-                    if (ImGui.Button($"{(this._showClientHash ? "Hide" : "Show")}")) this._showClientHash = !this._showClientHash;
+                    if (ImGui.Button($"{(this._showClientHash ? "隱藏" : "顯示")}")) this._showClientHash = !this._showClientHash;
                     ImGui.SameLine();
-                    if (ImGui.Button($"Copy")) ImGui.SetClipboardText(this.Client.ClientHash);
+                    if (ImGui.Button($"複製")) ImGui.SetClipboardText(this.Client.ClientHash);
                 }
                 ImGui.EndChild(); // debugVersionInfo
 
                 ImGui.Spacing();
 
-                ImGui.Text("Player Tracker");
+                ImGui.Text("玩家追蹤器");
                 ImGui.BeginChild("##DebugPlayerTracker", new Vector2(0, 35 * ImGui.GetIO().FontGlobalScale), true, ImGuiWindowFlags.None);
                 {
                     ImGui.Text($"Zone: {this.Client.Meta.PlayerPosition}");
@@ -1074,7 +1074,7 @@ namespace SonarPlugin.GUI
                 ImGui.EndChild(); // debugPlayerTracker
                 ImGui.Spacing();
 
-                ImGui.Text("Hunts Tracker");
+                ImGui.Text("狩獵追蹤器");
                 ImGui.BeginChild("##DebugHuntTracker", new Vector2(0, 80 * ImGui.GetIO().FontGlobalScale), true, ImGuiWindowFlags.None);
                 {
                     ImGui.Text($"Count: {this.Client.Trackers.Hunts.Data.Count} | Index: {this.Client.Trackers.Hunts.Data.IndexCount}");
@@ -1085,13 +1085,13 @@ namespace SonarPlugin.GUI
 
                     if (this._debugHuntTask.IsCompleted)
                     {
-                        if (ImGui.Button("Clear"))
+                        if (ImGui.Button("清除"))
                         {
                             this.Client.Trackers.Hunts.Data.Clear();
                             this.Logger.Information("Hunts Tracker Reset");
                         }
                         ImGui.SameLine();
-                        if (ImGui.Button("Check"))
+                        if (ImGui.Button("檢查"))
                         {
                             this._debugHuntTask = Task.Run(() =>
                             {
@@ -1107,9 +1107,9 @@ namespace SonarPlugin.GUI
                                 }
                             });
                         }
-                        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Perform a consistency check of the index\nOutput will be at /xllog");
+                        if (ImGui.IsItemHovered()) ImGui.SetTooltip("執行索引一致性檢查\n輸出結果將顯示於 /xllog");
                         ImGui.SameLine();
-                        if (ImGui.Button("Rebuild"))
+                        if (ImGui.Button("重建"))
                         {
                             this._debugHuntTask = Task.Run(() =>
                             {
@@ -1118,17 +1118,17 @@ namespace SonarPlugin.GUI
                                 this.Logger.Information("Hunt index debug rebuild complete");
                             });
                         }
-                        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Rebuild index\nOutput will be at /xllog\n\nWarning: You may experience stuttering");
+                        if (ImGui.IsItemHovered()) ImGui.SetTooltip("重建索引\n輸出結果將顯示於 /xllog\n\n警告: 可能會發生卡頓");
                     }
                     else
                     {
-                        ImGui.Text("Busy");
+                        ImGui.Text("忙碌中");
                     }
                 }
                 ImGui.EndChild(); // debugHuntTracker
                 ImGui.Spacing();
 
-                ImGui.Text("Fates Tracker");
+                ImGui.Text("節慶任務追蹤器");
                 ImGui.BeginChild("##DebugFateTracker", new Vector2(0, 80 * ImGui.GetIO().FontGlobalScale), true, ImGuiWindowFlags.None);
                 {
                     ImGui.Text($"Count: {this.Client.Trackers.Fates.Data.Count} | Index: {this.Client.Trackers.Fates.Data.IndexCount}");
@@ -1139,13 +1139,13 @@ namespace SonarPlugin.GUI
 
                     if (this._debugFateTask.IsCompleted)
                     {
-                        if (ImGui.Button("Clear"))
+                        if (ImGui.Button("清除"))
                         {
                             this.Client.Trackers.Fates.Data.Clear();
                             this.Logger.Information("Fates Tracker Reset");
                         }
                         ImGui.SameLine();
-                        if (ImGui.Button("Check"))
+                        if (ImGui.Button("檢查"))
                         {
                             this._debugFateTask = Task.Run(() =>
                             {
@@ -1161,9 +1161,9 @@ namespace SonarPlugin.GUI
                                 }
                             });
                         }
-                        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Perform a consistency check of the index\nOutput will be at /xllog");
+                        if (ImGui.IsItemHovered()) ImGui.SetTooltip("執行索引一致性檢查\n輸出結果將顯示於 /xllog");
                         ImGui.SameLine();
-                        if (ImGui.Button("Rebuild"))
+                        if (ImGui.Button("重建"))
                         {
                             this._debugFateTask = Task.Run(() =>
                             {
@@ -1172,17 +1172,17 @@ namespace SonarPlugin.GUI
                                 this.Logger.Information("Fate index debug rebuild complete");
                             });
                         }
-                        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Rebuild index\nOutput will be at /xllog\n\nWarning: You may experience stuttering");
+                        if (ImGui.IsItemHovered()) ImGui.SetTooltip("重建索引\n輸出結果將顯示於 /xllog\n\n警告: 可能會發生卡頓");
                     }
                     else
                     {
-                        ImGui.Text("Busy");
+                        ImGui.Text("忙碌中");
                     }
                 }
                 ImGui.EndChild(); // debugFateTracker
                 ImGui.Spacing();
 
-                if (ImGui.Button("Request Relay Data"))
+                if (ImGui.Button("請求中繼資料"))
                 {
                     this.Plugin.Configuration.SonarConfig.HuntConfig.TrackAll = true;
                     this.Plugin.Configuration.SonarConfig.FateConfig.TrackAll = true;
@@ -1191,7 +1191,7 @@ namespace SonarPlugin.GUI
                 }
                 if (ImGui.IsItemHovered())
                 {
-                    ImGui.SetTooltip("Request all relay information to be received.\nTrack All options will automatically be enabled for both Hunts and Fates.\nThis can only be done once.\n\nWarning: You'll receive everything the Sonar server knows!\nThis is currently under testing.");
+                    ImGui.SetTooltip("請求接收所有中繼資料。\n狩獵與節慶任務的「追蹤全部」選項將會自動啟用。\n此操作僅能執行一次。\n\n警告: 你將會收到 Sonar 伺服器所知道的所有資料！\n此功能目前仍在測試中。");
                 }
             }
 

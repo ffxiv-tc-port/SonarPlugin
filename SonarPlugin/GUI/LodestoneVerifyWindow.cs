@@ -81,7 +81,7 @@ namespace SonarPlugin.GUI
 
         public override void Draw()
         {
-            ImGui.TextWrapped("Lodestone Verification is needed for your currently logged in character:");
+            ImGui.TextWrapped("你目前登入的角色需要進行拉諾西亞漫遊指南 (Lodestone) 驗證:");
             ImGui.Indent(); this.DrawPlayerInfo(); ImGui.Unindent();
 
             ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
@@ -91,7 +91,7 @@ namespace SonarPlugin.GUI
             this.DrawVerification();
 
             ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
-            ImGui.TextWrapped("You can suppress this dialog at /sonarconfig General tab, Lodestone Settings.");
+            ImGui.TextWrapped("你可以在 /sonarconfig 的「一般」分頁、Lodestone 設定中關閉此對話框。");
         }
 
         private void DrawPlayerInfo()
@@ -115,63 +115,63 @@ namespace SonarPlugin.GUI
             {
                 case LodestoneVerificationReason.Unknown:
                     {
-                        ImGui.TextWrapped("Unspecified Reason.");
+                        ImGui.TextWrapped("未指定的原因。");
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Please contact Sonar support for assistance.");
+                        ImGui.TextWrapped("請聯絡 Sonar 支援以取得協助。");
                     }
                     break;
 
                 case LodestoneVerificationReason.NotVerified:
                     {
-                        ImGui.TextWrapped("Your character is currently not verified.");
+                        ImGui.TextWrapped("你的角色目前尚未通過驗證。");
                     }
                     break;
 
                 case LodestoneVerificationReason.NotFound:
                     {
-                        ImGui.TextWrapped("Your character lodestone profile is not found.");
+                        ImGui.TextWrapped("找不到你的角色 Lodestone 個人檔案。");
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Make your character's Lodestone profile searchable and public. You can set it back to private after verification is done.");
+                        ImGui.TextWrapped("請將你角色的 Lodestone 個人檔案設為可搜尋且公開。驗證完成後可再設回私人狀態。");
                     }
                     break;
 
                 case LodestoneVerificationReason.PrivateProfile:
                     {
-                        ImGui.TextWrapped("Your character lodestone profile is private.");
+                        ImGui.TextWrapped("你的角色 Lodestone 個人檔案為私人狀態。");
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Make your Lodestone profile public to be able to verify. You can set it back to private after verification is done.");
+                        ImGui.TextWrapped("請將你的 Lodestone 個人檔案設為公開以便進行驗證。驗證完成後可再設回私人狀態。");
                     }
                     break;
 
                 case LodestoneVerificationReason.Renamed:
                     {
-                        ImGui.TextWrapped("Your character has been renamed and your character's lodestone profile is private.");
+                        ImGui.TextWrapped("你的角色已改名，且角色的 Lodestone 個人檔案為私人狀態。");
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Make your Lodestone profile public to be able to verify. You can set it back to private after verification is done.");
+                        ImGui.TextWrapped("請將你的 Lodestone 個人檔案設為公開以便進行驗證。驗證完成後可再設回私人狀態。");
                     }
                     break;
 
                 case LodestoneVerificationReason.HashMismatch:
                     {
-                        ImGui.TextWrapped("Your character hash mismatch and your character's lodestone profile is private.");
+                        ImGui.TextWrapped("你的角色雜湊值不符，且角色的 Lodestone 個人檔案為私人狀態。");
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Make your Lodestone profile public to be able to verify. You can set it back to private after verification is done.");
+                        ImGui.TextWrapped("請將你的 Lodestone 個人檔案設為公開以便進行驗證。驗證完成後可再設回私人狀態。");
                     }
                     break;
 
                 case LodestoneVerificationReason.Stale:
                     {
-                        ImGui.TextWrapped("Your character lodestone information stored at Sonar is stale.");
+                        ImGui.TextWrapped("Sonar 儲存的角色 Lodestone 資訊已過期。");
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Make your Lodestone profile public to be able to verify. You can set it back to private after verification is done.");
+                        ImGui.TextWrapped("請將你的 Lodestone 個人檔案設為公開以便進行驗證。驗證完成後可再設回私人狀態。");
                     }
                     break;
 
                 default:
                     {
-                        ImGui.TextWrapped("Unable to provide reason.");
+                        ImGui.TextWrapped("無法提供原因。");
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Update your Sonar plugin or contact support for assistance.");
+                        ImGui.TextWrapped("請更新你的 Sonar 外掛，或聯絡支援以取得協助。");
                     }
                     break;
             }
@@ -179,11 +179,11 @@ namespace SonarPlugin.GUI
             if (this._need.Code is not null)
             {
                 ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
-                ImGui.TextWrapped("Add the following code into your chracter's lodestone profile bio:");
+                ImGui.TextWrapped("請將以下代碼加入你角色 Lodestone 個人檔案的自我介紹欄:");
                 ImGui.Indent();
                 ImGui.TextUnformatted(this._need.Code);
                 ImGui.SameLine();
-                if (ImGui.Button("Copy")) ImGui.SetClipboardText(this._need.Code);
+                if (ImGui.Button("複製")) ImGui.SetClipboardText(this._need.Code);
                 ImGui.Unindent();
             }
 
@@ -198,10 +198,10 @@ namespace SonarPlugin.GUI
 
             if (this._need.LodestoneId !=-1)
             {
-                if (ImGui.Button("Open Lodestone Profile")) _ = Task.Run(() => ShellUtils.ShellExecute($"{baseUrl}/character/{this._need.LodestoneId}/"));
+                if (ImGui.Button("開啟 Lodestone 個人檔案")) _ = Task.Run(() => ShellUtils.ShellExecute($"{baseUrl}/character/{this._need.LodestoneId}/"));
                 ImGui.SameLine();
             }
-            if (ImGui.Button("Open Lodestone Website")) _ = Task.Run(() => ShellUtils.ShellExecute($"{baseUrl}"));
+            if (ImGui.Button("開啟 Lodestone 網站")) _ = Task.Run(() => ShellUtils.ShellExecute($"{baseUrl}"));
         }
 
         private void DrawVerification()
@@ -211,37 +211,37 @@ namespace SonarPlugin.GUI
             var curTime = UnixTimeHelper.SyncedUnixNow;
             var reqTime = this._need.RequiredTime;
 
-            if (this._need.Required) ImGui.TextWrapped("This verification is a requirement.");
+            if (this._need.Required) ImGui.TextWrapped("此項驗證為必要項目。");
             else if (reqTime > 0)
             {
                 var remTime = reqTime - curTime;
                 if (remTime < SonarConstants.EarthMinute * 1) // This is to avoid confusion of being allowed a few seconds (might still cause confusion anyway....)
                 {
-                    ImGui.TextWrapped("This verification is a requirement.");
+                    ImGui.TextWrapped("此項驗證為必要項目。");
                 }
                 else if (remTime > SonarConstants.EarthDay * 2)
                 {
-                    ImGui.TextWrapped($"This verification will become a requirement in {(int)(remTime / SonarConstants.EarthDay)} days.");
+                    ImGui.TextWrapped($"此項驗證將在 {(int)(remTime / SonarConstants.EarthDay)} 天後成為必要項目。");
                 }
                 else if (remTime > SonarConstants.EarthHour * 1)
                 {
-                    ImGui.TextWrapped($"This verification will become a requirement in {(int)(remTime / SonarConstants.EarthHour)} hours.");
+                    ImGui.TextWrapped($"此項驗證將在 {(int)(remTime / SonarConstants.EarthHour)} 小時後成為必要項目。");
                 }
                 else if (remTime > SonarConstants.EarthMinute * 5)
                 {
-                    ImGui.TextWrapped($"This verification will become a requirement in {(int)(remTime / SonarConstants.EarthMinute)} minutes.");
+                    ImGui.TextWrapped($"此項驗證將在 {(int)(remTime / SonarConstants.EarthMinute)} 分鐘後成為必要項目。");
                 }
                 else
                 {
-                    ImGui.TextWrapped("This verification will become a requirement in less than 5 minutes.");
+                    ImGui.TextWrapped("此項驗證將在不到 5 分鐘後成為必要項目。");
                 }
             }
             else
             {
-                ImGui.TextWrapped("This verification is not a requirement at this time.");
+                ImGui.TextWrapped("此項驗證目前並非必要項目。");
             }
 
-            if (ImGui.Button("Verify"))
+            if (ImGui.Button("驗證"))
             {
                 this.Meta.RequestVerification();
                 this._requestTimestamp = curTime;
@@ -255,20 +255,20 @@ namespace SonarPlugin.GUI
                     var runTime = curTime - this._requestTimestamp;
                     if (runTime > SonarConstants.EarthSecond * 30)
                     {
-                        ImGui.TextWrapped("Verification timeout");
+                        ImGui.TextWrapped("驗證逾時");
                     }
                     else
                     {
                         var dots = new string(Enumerable.Repeat('.', ((int)(runTime / SonarConstants.EarthSecond * 3) % 3) + 1).ToArray());
-                        ImGui.TextWrapped($"Verification in progress{dots}");
+                        ImGui.TextWrapped($"驗證進行中{dots}");
                     }
                 }
                 else
                 {
-                    ImGui.TextWrapped("Verification failed"); // Window wouldn't be visible if succeded
+                    ImGui.TextWrapped("驗證失敗"); // Window wouldn't be visible if succeded
                 }
             }
-            ImGui.TextWrapped("You'll only be able to use Sonar in local mode if not verified by the time this becomes a requirement.");
+            ImGui.TextWrapped("若在此項目成為必要項目前尚未完成驗證，你將只能以本機模式使用 Sonar。");
         }
 
         private void NeededHandler(SonarMeta _, LodestoneVerificationNeeded need)

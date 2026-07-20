@@ -42,14 +42,14 @@ namespace SonarDiagnostics.GUI
 
         public override void Draw()
         {
-            if (ImGui.Button("DNS Tests")) this.DnsWindow.Value.Toggle();
-            if (ImGui.Button("Cosmic Exploration")) this.CosmicWindow.Value.Toggle();
+            if (ImGui.Button("DNS 測試")) this.DnsWindow.Value.Toggle();
+            if (ImGui.Button("宇宙探索")) this.CosmicWindow.Value.Toggle();
             ImGui.Separator();
 
             using (ImRaii.Disabled(this.Plugin.LogPath is null || !File.Exists(this.Plugin.LogPath)))
             {
                 var logFile = this.Plugin.LogPath;
-                if (ImGui.Button("Open Log File"))
+                if (ImGui.Button("開啟日誌檔"))
                 {
                     var startInfo = new ProcessStartInfo()
                     {
@@ -69,7 +69,7 @@ namespace SonarDiagnostics.GUI
                 ImGui.SameLine();
 
                 var logDir = Path.GetDirectoryName(logFile);
-                if (ImGui.Button("Open Logs Directory"))
+                if (ImGui.Button("開啟日誌資料夾"))
                 {
                     var startInfo = new ProcessStartInfo()
                     {

@@ -30,7 +30,7 @@ namespace SonarDiagnostics.Dns
         public override void Draw()
         {
             var worker = this._worker;
-            if (ImGui.Button("Perform DNS Tests"))
+            if (ImGui.Button("執行 DNS 測試"))
             {
                 worker = new DnsWorker(this.Logger);
                 this.ReplaceWorker(worker);
