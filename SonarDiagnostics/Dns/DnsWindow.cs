@@ -1,4 +1,5 @@
-﻿using Dalamud.Interface.Windowing;
+﻿using CheapLoc;
+using Dalamud.Interface.Windowing;
 using System;
 using ImGuiNET;
 using Dalamud.Plugin.Services;
@@ -30,7 +31,7 @@ namespace SonarDiagnostics.Dns
         public override void Draw()
         {
             var worker = this._worker;
-            if (ImGui.Button("Perform DNS Tests"))
+            if (ImGui.Button(Loc.Localize("PerformDnsTestsButton", "Perform DNS Tests")))
             {
                 worker = new DnsWorker(this.Logger);
                 this.ReplaceWorker(worker);

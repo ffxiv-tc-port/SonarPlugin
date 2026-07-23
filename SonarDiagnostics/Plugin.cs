@@ -1,4 +1,5 @@
-﻿using Dalamud.Game.Command;
+﻿using CheapLoc;
+using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -8,7 +9,10 @@ using SonarDiagnostics.Dns;
 using SonarDiagnostics.GUI;
 using SonarUtils;
 using System;
+using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text;
 
 namespace SonarDiagnostics
 {
@@ -30,6 +34,8 @@ namespace SonarDiagnostics
             this.Chat = chat;
             this.Logger = new DiagnosticLogger(logger, pluginInterface);
 
+            this.SetupLocalization();
+
             this._windows = new WindowSystem();
             this.PluginInterface.UiBuilder.Draw += this._windows.Draw;
             this.PluginInterface.UiBuilder.OpenMainUi += this.UiBuilder_OpenMainUi;
@@ -46,6 +52,29 @@ namespace SonarDiagnostics
         private void UiBuilder_OpenMainUi()
         {
             this._container.Resolve<MainWindow>().Toggle();
+        }
+
+        /// <summary>TC fork: this plugin is only shipped for the Traditional Chinese client, so always load
+        /// the embedded zh-TW CheapLoc resource (falls back to upstream English strings if it can't be read).</summary>
+        private void SetupLocalization()
+        {
+            try
+            {
+                var assembly = typeof(Plugin).Assembly;
+                using var stream = assembly.GetManifestResourceStream("SonarDiagnostics.Resources.tc.cheaploc.json");
+                if (stream is null)
+                {
+                    Loc.SetupWithFallbacks();
+                    return;
+                }
+                using var reader = new StreamReader(stream, Encoding.UTF8);
+                Loc.Setup(reader.ReadToEnd());
+            }
+            catch (Exception ex)
+            {
+                this.Logger.Error(ex, "Exception setting up localization");
+                Loc.SetupWithFallbacks();
+            }
         }
 
         private void CommandHandler(string command, string args)

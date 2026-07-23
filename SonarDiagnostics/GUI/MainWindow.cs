@@ -1,4 +1,5 @@
-﻿using Dalamud.Interface.Utility.Raii;
+﻿using CheapLoc;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using DryIocAttributes;
@@ -42,14 +43,14 @@ namespace SonarDiagnostics.GUI
 
         public override void Draw()
         {
-            if (ImGui.Button("DNS Tests")) this.DnsWindow.Value.Toggle();
-            if (ImGui.Button("Cosmic Exploration")) this.CosmicWindow.Value.Toggle();
+            if (ImGui.Button(Loc.Localize("DnsTestsButton", "DNS Tests"))) this.DnsWindow.Value.Toggle();
+            if (ImGui.Button(Loc.Localize("CosmicExplorationButton", "Cosmic Exploration"))) this.CosmicWindow.Value.Toggle();
             ImGui.Separator();
 
             using (ImRaii.Disabled(this.Plugin.LogPath is null || !File.Exists(this.Plugin.LogPath)))
             {
                 var logFile = this.Plugin.LogPath;
-                if (ImGui.Button("Open Log File"))
+                if (ImGui.Button(Loc.Localize("OpenLogFileButton", "Open Log File")))
                 {
                     var startInfo = new ProcessStartInfo()
                     {
@@ -69,7 +70,7 @@ namespace SonarDiagnostics.GUI
                 ImGui.SameLine();
 
                 var logDir = Path.GetDirectoryName(logFile);
-                if (ImGui.Button("Open Logs Directory"))
+                if (ImGui.Button(Loc.Localize("OpenLogsDirectoryButton", "Open Logs Directory")))
                 {
                     var startInfo = new ProcessStartInfo()
                     {
