@@ -20,6 +20,7 @@ namespace SonarPlugin.Config
             { LocalizationPreset.German, new(SonarLanguage.German, null, null) },
             { LocalizationPreset.French, new(SonarLanguage.French, null, null) },
             { LocalizationPreset.Chinese, new(SonarLanguage.ChineseSimplified, null, null) },
+            { LocalizationPreset.ChineseTraditional, new(SonarLanguage.ChineseTraditional, null, null) },
             { LocalizationPreset.Korean, new(SonarLanguage.Korean, null, null) },
 
         }.ToFrozenDictionary();

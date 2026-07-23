@@ -36,6 +36,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\en.plugin.lang.json" />
+    <!-- TC fork: zh-TW CheapLoc resource, see SonarPlugin.Utility.EnumLocUtils.ApplyCheapLoc -->
+    <EmbeddedResource Include="Resources\tc.cheaploc.json" />
   </ItemGroup>
 
   <ItemGroup>

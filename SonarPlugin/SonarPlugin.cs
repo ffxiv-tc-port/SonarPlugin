@@ -1,4 +1,3 @@
-using CheapLoc;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
@@ -47,7 +46,19 @@ namespace SonarPlugin
 
             this.Logger.Info("Setting up localization");
             EnumLocUtils.Setup(this.Configuration.Localization.DebugFallbacks);
-            CheapLoc.Loc.SetupWithFallbacks();
+
+            // TC fork: default new installs to the Traditional Chinese preset once; users may change language afterwards.
+            if (!this.Configuration.TcLanguageDefaultApplied)
+            {
+                this.Logger.Info("Applying Traditional Chinese language default (TC fork, one time)");
+                this.Configuration.TcLanguageDefaultApplied = true;
+                this.Configuration.Localization.Preset = LocalizationPreset.ChineseTraditional; // also applies CheapLoc, see LocalizationConfig.SetPresetCore
+                this.SaveConfiguration();
+            }
+            else
+            {
+                EnumLocUtils.ApplyCheapLoc(this.Configuration.Localization.Preset);
+            }
 
             this.Logger.Info("SonarPlugin Resources:");
             foreach (var resourceName in typeof(SonarPlugin).Assembly.GetManifestResourceNames())

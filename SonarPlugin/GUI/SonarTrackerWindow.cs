@@ -44,8 +44,8 @@ namespace SonarPlugin.GUI
             ImGui.Text($"Index key: {this._indexWidget.IndexKey}");
             ImGui.Text($"Hunts: {this.Hunts.Data.GetIndexStates(this._indexWidget.IndexKey).Count} | Fates: {this.Fates.Data.GetIndexStates(this._indexWidget.IndexKey).Count}");
             ImGui.Spacing();
-            ImGui.Text("恭喜你發現了這個！");
-            ImGui.TextWrapped("目前這個視窗還沒有什麼實用的功能，我會在下個版本繼續開發。在那之前，歡迎先體驗篩選選擇器以及狩獵/節慶任務的數量統計");
+            ImGui.Text(CheapLoc.Loc.Localize("TrackerCongratulations", "Congratulations finding this!"));
+            ImGui.TextWrapped(CheapLoc.Loc.Localize("TrackerUnderDevelopment", "Right now there's nothing useful in this window but I'll be working on this next release. In the meantime enjoy the filtering selector and hunt/fates counts"));
         }
 
         public void Dispose()

@@ -26,8 +26,8 @@ namespace SonarPlugin.Config
         //[EnumLoc(Fallback = "Chinese Simplified")]
         Chinese, // Simplified
 
-        //[EnumLoc(Fallback = "Chinese Traditional")]
-        // ChineseTraditional? // Traditional
+        [EnumLoc(Fallback = "Chinese Traditional")]
+        ChineseTraditional = 7, // Traditional
 
         Korean = 8,
     }
