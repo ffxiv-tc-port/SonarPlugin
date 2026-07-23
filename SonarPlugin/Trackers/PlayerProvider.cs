@@ -78,7 +78,7 @@ namespace SonarPlugin.Trackers
         {
             if (player is not null)
             {
-                var place = new PlayerPosition() { WorldId = player->CurrentWorld, ZoneId = this.ClientState.TerritoryType, InstanceId = FFXIVClientStructs.FFXIV.Client.Game.UI.UIState.Instance()->PublicInstance.InstanceId, Coords = Unsafe.As<CSVector3, Vector3>(ref player->Position).SwapYZ() };
+                var place = new PlayerPosition() { WorldId = player->CurrentWorld, ZoneId = this.ClientState.TerritoryType, InstanceId = this.ClientState.Instance, Coords = Unsafe.As<CSVector3, Vector3>(ref player->Position).SwapYZ() };
                 if (this.Client.Meta.UpdatePlayerPosition(place).PlaceUpdated) this.Logger.Verbose("Moved to {place}", place);
             }
         }

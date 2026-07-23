@@ -1,6 +1,6 @@
 using AG.EnumLocalization;
 using CheapLoc;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility.Raii;
@@ -176,7 +176,7 @@ namespace SonarPlugin.GUI.Internal
             return match.Success ? match.Groups["prefix"].Value : string.Empty;
         }
 
-        private static ImRaii.IEndObject PrefixHeading(string prefix, string current)
+        private static ImRaii.TreeNodeDisposable PrefixHeading(string prefix, string current)
         {
             var id = $"sounds_{prefix}";
             var name = prefix switch

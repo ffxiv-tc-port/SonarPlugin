@@ -1,6 +1,6 @@
 ﻿using CheapLoc;
 using Dalamud.Interface.Windowing;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Sonar;
 using Sonar.Config;
 using Sonar.Data;

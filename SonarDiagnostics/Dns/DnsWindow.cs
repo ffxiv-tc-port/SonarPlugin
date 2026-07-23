@@ -1,7 +1,7 @@
 ﻿using CheapLoc;
 using Dalamud.Interface.Windowing;
 using System;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Plugin.Services;
 using System.ComponentModel.Composition;
 using DryIocAttributes;
