@@ -78,7 +78,10 @@ namespace SonarPlugin.Trackers
         {
             if (player is not null)
             {
-                var place = new PlayerPosition() { WorldId = player->CurrentWorld, ZoneId = this.ClientState.TerritoryType, InstanceId = this.ClientState.Instance, Coords = Unsafe.As<CSVector3, Vector3>(ref player->Position).SwapYZ() };
+                // IClientState.Instance doesn't exist at this Dalamud API level; read the same value
+                // (the "public instance" copy number, e.g. Limsa 2) directly off UIState like Dalamud itself does.
+                var instanceId = UIState.Instance()->PublicInstance.InstanceId;
+                var place = new PlayerPosition() { WorldId = player->CurrentWorld, ZoneId = this.ClientState.TerritoryType, InstanceId = instanceId, Coords = Unsafe.As<CSVector3, Vector3>(ref player->Position).SwapYZ() };
                 if (this.Client.Meta.UpdatePlayerPosition(place).PlaceUpdated) this.Logger.Verbose("Moved to {place}", place);
             }
         }
