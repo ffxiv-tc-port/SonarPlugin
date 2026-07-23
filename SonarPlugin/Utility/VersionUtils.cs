@@ -12,7 +12,6 @@ using Dalamud.Interface;
 using Dalamud.Utility;
 using System.Runtime.CompilerServices;
 using SonarUtils;
-using Dalamud.Plugin.VersionInfo;
 using Dalamud.Plugin;
 
 namespace SonarPlugin.Utility
@@ -38,7 +37,7 @@ namespace SonarPlugin.Utility
         /// <summary>
         /// Get SonarVersion for Sonar.NET
         /// </summary>
-        public static SonarVersion GetSonarVersionModel(IDataManager data, IDalamudPluginInterface plugin, IDalamudVersionInfo dalamudVersion)
+        public static SonarVersion GetSonarVersionModel(IDataManager data, IDalamudPluginInterface plugin, DalamudVersionInfo dalamudVersion)
         {
             return new SonarVersion
             {

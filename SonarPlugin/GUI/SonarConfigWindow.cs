@@ -37,7 +37,6 @@ using System.Threading.Tasks;
 using static SonarPlugin.Utility.ShellUtils;
 using Dalamud.Interface;
 using SonarPlugin.Sounds;
-using Dalamud.Plugin.VersionInfo;
 using DryIocAttributes;
 using SonarUtils.Threading;
 using System.Globalization;
@@ -59,7 +58,7 @@ namespace SonarPlugin.GUI
         private IDalamudPluginInterface PluginInterface { get; }
         private SonarClient Client { get; }
         private IDataManager Data { get; }
-        private IDalamudVersionInfo DalamudVersion { get; }
+        private DalamudVersionInfo DalamudVersion { get; }
         private SoundEngine Sounds { get; }
         private FileDialogManager FileDialogs { get; }
         private IndexProvider Index { get; }
@@ -78,7 +77,7 @@ namespace SonarPlugin.GUI
         private readonly Dictionary<uint, string> _fateZonesCache = new();
         private readonly int fateTableColumnCount = Enum.GetNames(typeof(FateSelectionColumns)).Length;
 
-        public SonarConfigWindow(SonarPlugin plugin, SonarPluginStub stub, IDalamudPluginInterface pluginInterface, SonarClient client, IDataManager data, IDalamudVersionInfo dalamudVersion, AudioPlaybackEngine audio, SoundEngine sounds, FileDialogManager fileDialogs, IndexProvider index, IPluginLog logger) : base("Sonar Configuration")
+        public SonarConfigWindow(SonarPlugin plugin, SonarPluginStub stub, IDalamudPluginInterface pluginInterface, SonarClient client, IDataManager data, DalamudVersionInfo dalamudVersion, AudioPlaybackEngine audio, SoundEngine sounds, FileDialogManager fileDialogs, IndexProvider index, IPluginLog logger) : base("Sonar Configuration")
         {
             this.Plugin = plugin;
             this.Stub = stub;
