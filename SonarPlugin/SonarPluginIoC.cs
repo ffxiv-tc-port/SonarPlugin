@@ -171,12 +171,20 @@ namespace SonarPlugin
 
         public void StartServices()
         {
+            // Called from a backgrounded task (see SonarPluginStub), so blocking here is fine.
             this._container.StartAllServicesAsync(this.Logger).Wait();
         }
 
         public void StopServices()
         {
-            this._container.StopAllServicesAsync(this.Logger).Wait();
+            // Called synchronously from Dispose() (plugin unload/disable), which Dalamud invokes
+            // on the main thread and expects to return promptly. Bound the wait so a slow/hung
+            // network teardown can't freeze the game indefinitely; the container is disposed
+            // right after regardless, which cleans up anything left dangling.
+            if (!this._container.StopAllServicesAsync(this.Logger).Wait(TimeSpan.FromSeconds(3)))
+            {
+                this.Logger.LogWarning("Timed out waiting for Sonar services to stop; continuing with disposal");
+            }
         }
 
         public void Dispose()
