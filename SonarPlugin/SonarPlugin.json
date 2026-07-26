@@ -19,7 +19,7 @@
   "CategoryTags": [
     "utility"
   ],
-  "RepoUrl": "https://github.com/Lother/SonarPlugin",
+  "RepoUrl": "https://github.com/ffxiv-tc-port/SonarPlugin",
   "TODO1": "To be replaced once supportInfo is implemented DIP53: https://github.com/FFXIV-Sonar/SonarDistrib",
   "IconUrl": "https://assets.ffxivsonar.com/dalamud/logo.png",
   "ImageUrls": [
