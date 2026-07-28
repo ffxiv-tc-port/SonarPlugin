@@ -3,5 +3,6 @@
   "CosmicExplorationButton": { "message": "宇宙探索" },
   "OpenLogFileButton": { "message": "開啟日誌檔" },
   "OpenLogsDirectoryButton": { "message": "開啟日誌資料夾" },
-  "PerformDnsTestsButton": { "message": "執行 DNS 測試" }
+  "PerformDnsTestsButton": { "message": "執行 DNS 測試" },
+  "CommandHelp_sonardiagnostics": { "message": "開啟/關閉 Sonar Diagnostics。加上 \"help\" 可列出子指令。" }
 }
