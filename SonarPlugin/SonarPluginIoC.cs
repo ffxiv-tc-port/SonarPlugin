@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Threading;
 using Dalamud.Plugin;
+using Dalamud.IoC;
 using Dalamud.Game;
 using SonarPlugin.Utility;
 using Sonar.Data;
@@ -38,7 +39,7 @@ namespace SonarPlugin
 
         private SonarPluginStub Stub { get; }
         public IDalamudPluginInterface PluginInterface { get; }
-        private DalamudServices Services { get; }
+        public DalamudVersionInfo DalamudVersion { get; }
         private IDataManager Data { get; }
         private ILogger Logger { get; }
 
@@ -46,11 +47,11 @@ namespace SonarPlugin
         {
             this.Stub = stub;
             this.PluginInterface = pluginInterface;
-            this.Services = pluginInterface.Create<DalamudServices>()!;
 
             this._container = this.CreateContainer();
 
             this.Data = this._container.Resolve<IDataManager>();
+            this.DalamudVersion = this._container.Resolve<DalamudVersionInfo>();
             this.Logger = this._container.Resolve<ILogger<SonarPluginIoC>>();
         }
 
@@ -78,7 +79,7 @@ namespace SonarPlugin
                     SonarLanguage.English;
             }
 
-            var versionInfo = VersionUtils.GetSonarVersionModel(this.Data, this.PluginInterface);
+            var versionInfo = VersionUtils.GetSonarVersionModel(this.Data, this.PluginInterface, this.DalamudVersion);
             var client = new SonarClient(startInfo) { VersionInfo = versionInfo };
             Database.DefaultLanguage = this.Data.Language switch
             {
@@ -104,16 +105,39 @@ namespace SonarPlugin
             return results;
         }
 
+        /// <summary>
+        /// IDalamudPluginInterface.GetRequiredService&lt;T&gt;() (an IServiceProvider-style extension) does not exist
+        /// at this Dalamud API level. Instead, resolve everything at once via IDalamudPluginInterface.Create&lt;T&gt;(),
+        /// which fills [PluginService] properties the same way [PluginService] field injection does elsewhere.
+        /// </summary>
+        private sealed class DalamudServiceBag
+        {
+            [PluginService] public IPluginLog PluginLog { get; set; } = null!;
+            [PluginService] public IFramework Framework { get; set; } = null!;
+            [PluginService] public ICondition Condition { get; set; } = null!;
+            [PluginService] public IClientState ClientState { get; set; } = null!;
+            [PluginService] public IGameGui GameGui { get; set; } = null!;
+            [PluginService] public IChatGui ChatGui { get; set; } = null!;
+            [PluginService] public ICommandManager CommandManager { get; set; } = null!;
+            [PluginService] public IFateTable FateTable { get; set; } = null!;
+            [PluginService] public IObjectTable ObjectTable { get; set; } = null!;
+            [PluginService] public ISigScanner SigScanner { get; set; } = null!;
+            [PluginService] public IDataManager DataManager { get; set; } = null!;
+            [PluginService] public ITextureProvider TextureProvider { get; set; } = null!;
+        }
+
         private Container CreateContainer()
         {
             var container = new Container();
             container.RegisterInstanceMany(container, setup: Setup.With(preventDisposal: true));
 
+            var dalamudServices = this.PluginInterface.Create<DalamudServiceBag>() ?? throw new InvalidOperationException("Failed to inject Dalamud services");
+
             // Services
             container.RegisterExports(typeof(SonarPluginIoC).Assembly, typeof(SonarEventManager).Assembly);
 
             // Logging Services
-            container.RegisterInstance(this.Services.PluginLog, setup: Setup.With(preventDisposal: true));
+            container.RegisterInstance(dalamudServices.PluginLog, setup: Setup.With(preventDisposal: true));
             container.RegisterMany(Made.Of(() => new LoggerFactory(Arg.Of<IEnumerable<ILoggerProvider>>())), Reuse.Singleton);
             container.Register(typeof(ILogger<>), typeof(PluginLoggerAdapter<>), Reuse.Singleton);
             container.AddPluginLogger();
@@ -136,18 +160,23 @@ namespace SonarPlugin
             container.RegisterInstanceMany(PlaceholderFormatter.Default);
 
             // Dalamud Services
+            // NOTE: IPlayerState doesn't exist at this Dalamud API level (and nothing in this plugin consumes it
+            // via DI) so its registration was dropped along with the rest of the GetRequiredService<T> calls.
             container.RegisterInstance(this.PluginInterface, setup: Setup.With(preventDisposal: true)); // Dispose is [Obsolete]
-            container.RegisterDelegate(() => this.Services.Framework, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(() => this.Services.Condition, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(() => this.Services.ClientState, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(() => this.Services.GameGui, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(() => this.Services.ChatGui, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(() => this.Services.CommandManager, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(() => this.Services.FateTable, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(() => this.Services.ObjectTable, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(() => this.Services.SigScanner, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(() => this.Services.DataManager, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
-            container.RegisterDelegate(() => this.Services.TextureProvider, Reuse.Singleton, setup: Setup.With(preventDisposal: true));
+            container.RegisterInstance(dalamudServices.Framework, setup: Setup.With(preventDisposal: true));
+            container.RegisterInstance(dalamudServices.Condition, setup: Setup.With(preventDisposal: true));
+            container.RegisterInstance(dalamudServices.ClientState, setup: Setup.With(preventDisposal: true));
+            container.RegisterInstance(dalamudServices.GameGui, setup: Setup.With(preventDisposal: true));
+            container.RegisterInstance(dalamudServices.ChatGui, setup: Setup.With(preventDisposal: true));
+            container.RegisterInstance(dalamudServices.CommandManager, setup: Setup.With(preventDisposal: true));
+            container.RegisterInstance(dalamudServices.FateTable, setup: Setup.With(preventDisposal: true));
+            container.RegisterInstance(dalamudServices.ObjectTable, setup: Setup.With(preventDisposal: true));
+            container.RegisterInstance(dalamudServices.SigScanner, setup: Setup.With(preventDisposal: true));
+            container.RegisterInstance(dalamudServices.DataManager, setup: Setup.With(preventDisposal: true));
+            container.RegisterInstance(dalamudServices.TextureProvider, setup: Setup.With(preventDisposal: true));
+            // Dalamud.Plugin.VersionInfo.IDalamudVersionInfo / IDalamudPluginInterface.GetDalamudVersion() do not
+            // exist at this Dalamud API level; use our own DalamudVersionInfo (SonarPlugin.Utility) instead.
+            container.RegisterInstance(new DalamudVersionInfo(), setup: Setup.With(preventDisposal: true));
 
             // Additional Dalamud Services
             container.RegisterMany(Made.Of(request => ServiceInfo.Of<IDalamudPluginInterface>(), pluginInterface => pluginInterface.UiBuilder), Reuse.Singleton, Setup.With(preventDisposal: true));

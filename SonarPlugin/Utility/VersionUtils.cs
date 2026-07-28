@@ -37,16 +37,14 @@ namespace SonarPlugin.Utility
         /// <summary>
         /// Get SonarVersion for Sonar.NET
         /// </summary>
-        public static SonarVersion GetSonarVersionModel(IDataManager data, IDalamudPluginInterface plugin)
+        public static SonarVersion GetSonarVersionModel(IDataManager data, IDalamudPluginInterface plugin, DalamudVersionInfo dalamudVersion)
         {
             return new SonarVersion
             {
                 Game = GetGameVersion(data),
                 Plugin = $"{Assembly.GetExecutingAssembly().GetName().Name} {GetSonarPluginVersion()}",
                 PluginHash = SonarVersion.GetAssemblyHash(Assembly.GetExecutingAssembly()),
-                // NOTE: IDalamudVersionInfo (added later to query Dalamud.dll's own version/git
-                // hash) doesn't exist in TC's Dalamud - fall back to the loaded assembly version.
-                Dalamud = $"{typeof(Util).Assembly.GetName().Version}",
+                Dalamud = $"{dalamudVersion.Version} ({dalamudVersion.GitHash})",
                 DalamudHash = GetDalamudHash(),
 
                 InternalName = plugin.InternalName,

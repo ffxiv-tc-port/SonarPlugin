@@ -1,6 +1,6 @@
 using AG.EnumLocalization;
 using CheapLoc;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility.Raii;

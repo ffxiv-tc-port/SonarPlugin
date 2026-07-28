@@ -10,7 +10,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Sonar;
 using Sonar.Data;
 using Sonar.Data.Extensions;
@@ -58,6 +58,7 @@ namespace SonarPlugin.GUI
         private IDalamudPluginInterface PluginInterface { get; }
         private SonarClient Client { get; }
         private IDataManager Data { get; }
+        private DalamudVersionInfo DalamudVersion { get; }
         private SoundEngine Sounds { get; }
         private FileDialogManager FileDialogs { get; }
         private IndexProvider Index { get; }
@@ -76,13 +77,14 @@ namespace SonarPlugin.GUI
         private readonly Dictionary<uint, string> _fateZonesCache = new();
         private readonly int fateTableColumnCount = Enum.GetNames(typeof(FateSelectionColumns)).Length;
 
-        public SonarConfigWindow(SonarPlugin plugin, SonarPluginStub stub, IDalamudPluginInterface pluginInterface, SonarClient client, IDataManager data, AudioPlaybackEngine audio, SoundEngine sounds, FileDialogManager fileDialogs, IndexProvider index, IPluginLog logger) : base("Sonar Configuration")
+        public SonarConfigWindow(SonarPlugin plugin, SonarPluginStub stub, IDalamudPluginInterface pluginInterface, SonarClient client, IDataManager data, DalamudVersionInfo dalamudVersion, AudioPlaybackEngine audio, SoundEngine sounds, FileDialogManager fileDialogs, IndexProvider index, IPluginLog logger) : base("Sonar Configuration")
         {
             this.Plugin = plugin;
             this.Stub = stub;
             this.PluginInterface = pluginInterface;
             this.Client = client;
             this.Data = data;
+            this.DalamudVersion = dalamudVersion;
             this.Sounds = sounds;
             this.Audio = audio;
             this.FileDialogs = fileDialogs;
@@ -1046,8 +1048,7 @@ namespace SonarPlugin.GUI
                 ImGui.BeginChild("##debugVersionInfo", new Vector2(0, 100 * ImGui.GetIO().FontGlobalScale), true, ImGuiWindowFlags.None);
                 {
                     ImGui.Text($"{this.Stub.PluginName} v{Assembly.GetExecutingAssembly().GetName().Version}");
-                    // NOTE: IDalamudVersionInfo doesn't exist in TC's Dalamud - just show the loaded assembly version.
-                    ImGui.Text($"Dalamud {typeof(Dalamud.Utility.Util).Assembly.GetName().Version}");
+                    ImGui.Text($"Dalamud {this.DalamudVersion.Version} (Git: {this.DalamudVersion.GitHash})");
                     ImGui.Text($"FFXIV {VersionUtils.GetGameVersion(this.Data)}");
 
                     ImGui.Text($"Client Hash: ");
