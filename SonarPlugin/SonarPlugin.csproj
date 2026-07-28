@@ -1,10 +1,10 @@
-﻿<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+﻿<Project Sdk="Dalamud.NET.Sdk/13.0.0">
   <Import Project="..\SonarCommon.props" />
 
   <PropertyGroup>
     <OutputPath>bin/</OutputPath>
     <OutDir>$(OutputPath)</OutDir>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net9.0-windows</TargetFramework>
     <SecretMeta>$(PLOGON_SECRET_PLUGIN)</SecretMeta>
     <BuildNumberFile>$(MSBuildProjectDirectory)\BuildNumber.txt</BuildNumberFile>
     <_PreviousBuildNumber Condition="Exists('$(BuildNumberFile)')">$([System.IO.File]::ReadAllText('$(BuildNumberFile)').Trim())</_PreviousBuildNumber>

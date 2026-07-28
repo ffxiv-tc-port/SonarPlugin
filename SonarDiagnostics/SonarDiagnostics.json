@@ -4,5 +4,6 @@
   "Punchline": "",
   "Description": "",
   "Tags": [ ],
-  "CategoryTags": [ "utility" ]
+  "CategoryTags": [ "utility" ],
+  "DalamudApiLevel": 13
 }
