@@ -38,6 +38,8 @@
     <EmbeddedResource Include="Resources\en.plugin.lang.json" />
     <!-- TC fork: zh-TW CheapLoc resource, see SonarPlugin.Utility.EnumLocUtils.ApplyCheapLoc -->
     <EmbeddedResource Include="Resources\tc.cheaploc.json" />
+    <!-- TC fork: zh-TW AG.EnumLocalization language file, selected by LocalizationPreset.ChineseTraditional -->
+    <EmbeddedResource Include="Resources\tc.plugin.lang.json" />
   </ItemGroup>
 
   <ItemGroup>
