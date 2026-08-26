@@ -1,5 +1,5 @@
 ﻿using AG.EnumLocalization;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
@@ -28,10 +28,11 @@ namespace SonarPlugin.GUI.Internal
         {
             if (updateStrings) UpdateStrings(langCode);
             if (!s_indexes.TryGetValue(value, out var index)) index = -1;
-            // items_count must be the real array length: passing max_height (100) here made native
-            // igCombo_Str_arr read past the marshalled 9-element array and crash the game (C0000005)
-            // whenever the combo popup opened. max_height belongs in the 5th parameter.
-            var result = ImGui.Combo(label, ref index, s_strings!, s_strings.Length, max_height);
+            // Dalamud.Bindings.ImGui's Combo(label, ref current, ReadOnlySpan<string> items, popupMaxHeightInItems)
+            // derives the item count from the span itself (no separate items_count parameter anymore), which
+            // also means the old items_count/popup_max_height argument-order mixup that used to crash the game
+            // (C0000005 in igCombo_Str_arr) can no longer happen.
+            var result = ImGui.Combo(label, ref index, s_strings!, max_height);
             if (result) value = s_values[index];
             return result;
         }

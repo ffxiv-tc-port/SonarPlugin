@@ -1,7 +1,7 @@
 ﻿using CheapLoc;
 using Dalamud.Interface.Windowing;
 using DryIoc.ImTools;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Sonar;
 using Sonar.Enums;
 using Sonar.Models;
