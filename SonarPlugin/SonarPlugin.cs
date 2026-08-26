@@ -4,6 +4,7 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using DryIocAttributes;
 using Sonar;
+using Sonar.Enums;
 using Sonar.Extensions;
 using Sonar.Logging;
 using SonarPlugin.Config;
@@ -52,7 +53,38 @@ namespace SonarPlugin
             {
                 this.Logger.Info("Applying Traditional Chinese language default (TC fork, one time)");
                 this.Configuration.TcLanguageDefaultApplied = true;
+                // A brand new install lands on the full preset here, so the EnumLoc migration below is already satisfied.
+                this.Configuration.TcEnumLocMigrationApplied = true;
                 this.Configuration.Localization.Preset = LocalizationPreset.ChineseTraditional; // also applies CheapLoc, see LocalizationConfig.SetPresetCore
+                this.SaveConfiguration();
+            }
+            else if (!this.Configuration.TcEnumLocMigrationApplied)
+            {
+                // TC fork: one-time migration for users who installed before the zh-TW AG.EnumLocalization language
+                // files existed. Their config stored the Traditional Chinese preset as (ChineseTraditional, null,
+                // null); the plugin/Sonar EnumLoc strings therefore stayed on the English fallback until they re-picked
+                // a language by hand. Only that exact old-default shape is upgraded, so a user who has since chosen a
+                // different language (or a different Db) is never overridden. Set the flag first so the migration never
+                // repeats, and guard the whole thing so a failure fails safe (stays on the current strings, no crash).
+                this.Configuration.TcEnumLocMigrationApplied = true;
+                try
+                {
+                    var loc = this.Configuration.Localization;
+                    if (loc.Db == SonarLanguage.ChineseTraditional && loc.Plugin is null && loc.Sonar is null)
+                    {
+                        this.Logger.Information("Migrating existing Traditional Chinese config to the zh-TW EnumLoc language files (TC fork, one time)");
+                        loc.Preset = LocalizationPreset.ChineseTraditional; // sets Plugin/Sonar language files + applies CheapLoc, see LocalizationConfig.SetPresetCore
+                    }
+                    else
+                    {
+                        // User already chose a language (or a non-default Db); leave their selection alone.
+                        EnumLocUtils.ApplyCheapLoc(loc.Preset);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    this.Logger.Warning(ex, "zh-TW EnumLoc migration failed; keeping current language (TC fork)");
+                }
                 this.SaveConfiguration();
             }
             else

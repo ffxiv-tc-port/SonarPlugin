@@ -39,7 +39,9 @@ namespace SonarPlugin.Managers
         public unsafe bool IsAttuned(uint aetheryteId)
         {
             if (aetheryteId is 0) return false;
-            if (!this.ClientState.IsLoggedIn || this.ClientState.LocalPlayer is null) return false; // I rather not return true
+            // API13 把 IClientState.LocalPlayer 標為過時；ClientState.LocalPlayer 本身就是
+            // => this.objectTable.LocalPlayer 的純轉發，改用本類別既有的 IObjectTable 行為不變。
+            if (!this.ClientState.IsLoggedIn || this.ObjectTable.LocalPlayer is null) return false; // I rather not return true
 
             var telepo = Telepo.Instance();
             if (telepo is null) return false;
@@ -106,7 +108,8 @@ namespace SonarPlugin.Managers
 
         public bool TeleportToClosest(GamePosition position, bool checkWorld)
         {
-            if (checkWorld && this.ClientState.LocalPlayer?.CurrentWorld.RowId != position.WorldId)
+            // API13：同上，IClientState.LocalPlayer -> IObjectTable.LocalPlayer 純轉發。
+            if (checkWorld && this.ObjectTable.LocalPlayer?.CurrentWorld.RowId != position.WorldId)
             {
                 var cityStateMeta = this.Configuration.PreferredCityState.GetMeta();
                 return this.Teleport(this.FindFirstAttuned(cityStateMeta?.AetheryteId ?? 0, 8, 2, 9)); // Limsa, Gridania, Uldah

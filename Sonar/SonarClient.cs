@@ -318,8 +318,11 @@ namespace Sonar
 
             GC.SuppressFinalize(this);
         }
+        // Dalamud 會在主執行緒上呼叫這個 Dispose。底下每一層(PingService、SonarSocketSignalR)
+        // 都已經有 5 秒上限,唯獨這裡是無上限等待,任何一層卡住就會讓整個遊戲在卸載外掛時凍結,
+        // 等於把底下的保險全部繞過,所以這裡也必須有界。
         [SuppressMessage("Usage", "CA1816", Justification = "Called in DisposeAsync")]
-        public void Dispose() => this.DisposeAsync().AsTask().Wait();
+        public void Dispose() => this.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
         ~SonarClient()
         {
             ClientFinalized();

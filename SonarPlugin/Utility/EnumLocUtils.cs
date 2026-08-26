@@ -23,6 +23,14 @@ namespace SonarPlugin.Utility
         private static readonly Regex s_resourceNameRegex = new(@"^.*\.lang\.json$", RegexOptions.ExplicitCapture | RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private static readonly ConcurrentDictionary<Assembly, ImmutableArray<string>> s_languages = new();
 
+        /// <summary>TC fork: manifest resource name of the zh-TW language file embedded in the plugin assembly.</summary>
+        /// <remarks>An <see cref="EnumLoc"/> language code IS the manifest resource name the language was loaded
+        /// under (see <see cref="SetupAssemblyCore"/>), so this doubles as the language code.</remarks>
+        public const string TcPluginLanguage = "SonarPlugin.Resources.tc.plugin.lang.json";
+
+        /// <summary>TC fork: manifest resource name of the zh-TW language file embedded in the Sonar assembly.</summary>
+        public const string TcSonarLanguage = "Sonar.Resources.tc.sonar.lang.json";
+
         /// <summary>RunSetup localization.</summary>
         /// <param name="threaded">Launch a background task to perform the setup.</param>
         /// <param name="debugFallbacks">Use debugFallbacks fallbacks.</param>

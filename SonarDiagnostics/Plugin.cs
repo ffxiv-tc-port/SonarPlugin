@@ -40,7 +40,7 @@ namespace SonarDiagnostics
             this.PluginInterface.UiBuilder.Draw += this._windows.Draw;
             this.PluginInterface.UiBuilder.OpenMainUi += this.UiBuilder_OpenMainUi;
 
-            var commandInfo = new CommandInfo(this.CommandHandler) { HelpMessage = "Open/Close Sonar Diagnostics. Add \"help\" for subcommands." };
+            var commandInfo = new CommandInfo(this.CommandHandler) { HelpMessage = Loc.Localize("CommandHelp_sonardiagnostics", "Open/Close Sonar Diagnostics. Add \"help\" for subcommands.") };
             this.Commands.AddHandler("/sonardiagnostics", commandInfo);
             this.Commands.AddHandler("/sonardiag", commandInfo);
 

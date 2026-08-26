@@ -35,5 +35,6 @@
     "supportText": "Support is provided exclusively at the Sonar Support discord. You can also create a ticket if privacy is desired. To send feedback please do so via /sonarsupport or join the Discord."
   },
   "AcceptsFeedback": false,
-  "AcceptsFeedbackComment": "To send feedback, type /sonarsupport to send feedback or let us know in the Sonar Support discord"
+  "AcceptsFeedbackComment": "To send feedback, type /sonarsupport to send feedback or let us know in the Sonar Support discord",
+  "DalamudApiLevel": 13
 }

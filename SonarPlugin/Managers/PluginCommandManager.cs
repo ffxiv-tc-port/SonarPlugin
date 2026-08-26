@@ -69,7 +69,7 @@ namespace SonarPlugin.Managers
 
             var commandInfo = new CommandInfo(handlerDelegate)
             {
-                HelpMessage = helpMessage?.HelpMessage ?? string.Empty,
+                HelpMessage = LocalizeHelpMessage(command.Command, helpMessage?.HelpMessage),
                 ShowInHelp = showInHelp is not null,
             };
 
@@ -88,6 +88,18 @@ namespace SonarPlugin.Managers
             }
 
             return commandInfoTuples;
+        }
+
+        /// <summary>
+        /// HelpMessage 會顯示在 /xlhelp 與 Dalamud 插件安裝器的指令清單裡,原本直接沿用
+        /// [HelpMessage] 屬性上的英文。屬性參數必須是編譯期常數,沒辦法在屬性上呼叫 CheapLoc,
+        /// 所以改在註冊當下依指令名查 CheapLoc 的 CommandHelp_&lt;指令&gt;;查不到就自動落回
+        /// 屬性上的英文原文(CheapLoc 的 fallback 行為),其他語系不受影響。
+        /// </summary>
+        private static string LocalizeHelpMessage(string command, string? fallback)
+        {
+            if (string.IsNullOrEmpty(fallback)) return string.Empty;
+            return CheapLoc.Loc.Localize($"CommandHelp_{command.TrimStart('/')}", fallback, typeof(PluginCommandManager<THost>).Assembly);
         }
 
         public void Dispose()

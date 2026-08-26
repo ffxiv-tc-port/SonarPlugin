@@ -20,7 +20,9 @@ namespace SonarPlugin.Config
             { LocalizationPreset.German, new(SonarLanguage.German, null, null) },
             { LocalizationPreset.French, new(SonarLanguage.French, null, null) },
             { LocalizationPreset.Chinese, new(SonarLanguage.ChineseSimplified, null, null) },
-            { LocalizationPreset.ChineseTraditional, new(SonarLanguage.ChineseTraditional, null, null) },
+            // TC fork: the Traditional Chinese preset also selects the embedded zh-TW AG.EnumLocalization
+            // language files. Upstream leaves these null (= English fallbacks baked into the enum attributes).
+            { LocalizationPreset.ChineseTraditional, new(SonarLanguage.ChineseTraditional, EnumLocUtils.TcPluginLanguage, EnumLocUtils.TcSonarLanguage) },
             { LocalizationPreset.Korean, new(SonarLanguage.Korean, null, null) },
 
         }.ToFrozenDictionary();

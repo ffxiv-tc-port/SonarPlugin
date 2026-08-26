@@ -87,6 +87,17 @@ namespace SonarPlugin.Config
             {
                 if (this.Db == config.Db && this.Plugin == config.Plugin && this.Sonar == config.Dll) return preset;
             }
+
+            // TC fork: configurations written before the zh-TW .lang.json resources existed stored the Traditional
+            // Chinese preset as (ChineseTraditional, null, null). Keep recognizing that shape -- without it those
+            // users fall through to Undefined, and Undefined makes ApplyCheapLoc revert to English, silently
+            // dropping the zh-TW strings they already had. They keep English EnumLoc strings until they pick a
+            // language explicitly; nothing they already had is lost.
+            if (this.Db == SonarLanguage.ChineseTraditional && this.Plugin is null && this.Sonar is null)
+            {
+                return LocalizationPreset.ChineseTraditional;
+            }
+
             return LocalizationPreset.Undefined;
         }
 
