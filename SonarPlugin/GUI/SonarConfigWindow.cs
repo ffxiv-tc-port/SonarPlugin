@@ -125,6 +125,7 @@ namespace SonarPlugin.GUI
         private bool _server;
         public override void PreDraw()
         {
+            base.PreDraw();
             this.WindowName = $"{ConfigWindowLoc.WindowTitle.GetLocString()}###SonarConfigWindow";
         }
 

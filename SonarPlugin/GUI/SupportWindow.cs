@@ -74,6 +74,7 @@ namespace SonarPlugin.GUI
         public override void PostDraw()
         {
             this.DrawResponseWindow();
+            base.PostDraw();
         }
 
         private void DrawForm()
