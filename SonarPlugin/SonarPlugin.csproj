@@ -1,12 +1,23 @@
-﻿<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+﻿<Project Sdk="Dalamud.NET.Sdk/12.0.2">
   <Import Project="..\SonarCommon.props" />
 
   <PropertyGroup>
     <OutputPath>bin/</OutputPath>
     <OutDir>$(OutputPath)</OutDir>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net9.0-windows</TargetFramework>
     <SecretMeta>$(PLOGON_SECRET_PLUGIN)</SecretMeta>
+    <BuildNumberFile>$(MSBuildProjectDirectory)\BuildNumber.txt</BuildNumberFile>
+    <_PreviousBuildNumber Condition="Exists('$(BuildNumberFile)')">$([System.IO.File]::ReadAllText('$(BuildNumberFile)').Trim())</_PreviousBuildNumber>
+    <_PreviousBuildNumber Condition="'$(_PreviousBuildNumber)' == ''">0</_PreviousBuildNumber>
+    <BuildNumber>$([MSBuild]::Add($(_PreviousBuildNumber), 1))</BuildNumber>
+    <VersionPrefix>7.15.0</VersionPrefix>
+    <Version>$(VersionPrefix).$(BuildNumber)</Version>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
   </PropertyGroup>
+  <Target Name="PersistBuildNumber" AfterTargets="Build">
+    <WriteLinesToFile File="$(BuildNumberFile)" Lines="$(BuildNumber)" Overwrite="true" />
+  </Target>
 
   <ItemGroup>
     <None Remove="Resources\Flavor.data" />
@@ -25,6 +36,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\en.plugin.lang.json" />
+    <!-- TC fork: zh-TW CheapLoc resource, see SonarPlugin.Utility.EnumLocUtils.ApplyCheapLoc -->
+    <EmbeddedResource Include="Resources\tc.cheaploc.json" />
   </ItemGroup>
 
   <ItemGroup>

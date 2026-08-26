@@ -48,7 +48,9 @@ namespace SonarUtils
                 var name = NormalizePath(entry.FullName);
                 if (name.EndsWith('/')) continue; // Skip directory entries
 
-                var stream = await entry.OpenAsync(cancellationToken).ConfigureAwait(false);
+                // NOTE: ZipArchiveEntry.OpenAsync is a .NET 10-only API; this machine only has the
+                // .NET 9 stable SDK, so fall back to the synchronous Open() (local file I/O, cheap).
+                var stream = entry.Open();
                 await using (stream.ConfigureAwait(false))
                 {
                     var hash = await SonarHashing.HMacSha256Async(stream, key, cancellationToken).ConfigureAwait(false);
@@ -59,8 +61,10 @@ namespace SonarUtils
 
         public static async IAsyncEnumerable<KeyValuePair<string, ImmutableArray<byte>>> GenerateHashesAsync(FileInfo archive, ReadOnlyMemory<byte> key, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var zip = await ZipFile.OpenReadAsync(archive.FullName, cancellationToken).ConfigureAwait(false);
-            await using (zip.ConfigureAwait(false))
+            // NOTE: ZipFile.OpenReadAsync is a .NET 10-only API; this machine only has the .NET 9
+            // stable SDK, so fall back to the synchronous OpenRead() (local file I/O, cheap).
+            var zip = ZipFile.OpenRead(archive.FullName);
+            using (zip)
             {
                 await foreach (var item in GenerateHashesAsync(zip, key, cancellationToken).ConfigureAwait(false)) yield return item;
             }

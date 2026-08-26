@@ -1,4 +1,4 @@
-using Dalamud.Bindings.ImGui;
+using ImGuiNET;
 using Dalamud.Interface.Windowing;
 using Dalamud.Logging;
 using DryIoc;
@@ -44,8 +44,8 @@ namespace SonarPlugin.GUI
             ImGui.Text($"Index key: {this._indexWidget.IndexKey}");
             ImGui.Text($"Hunts: {this.Hunts.Data.GetIndexStates(this._indexWidget.IndexKey).Count} | Fates: {this.Fates.Data.GetIndexStates(this._indexWidget.IndexKey).Count}");
             ImGui.Spacing();
-            ImGui.Text("Congratulations finding this!");
-            ImGui.TextWrapped("Right now there's nothing useful in this window but I'll be working on this next release. In the meantime enjoy the filtering selector and hunt/fates counts");
+            ImGui.Text(CheapLoc.Loc.Localize("TrackerCongratulations", "Congratulations finding this!"));
+            ImGui.TextWrapped(CheapLoc.Loc.Localize("TrackerUnderDevelopment", "Right now there's nothing useful in this window but I'll be working on this next release. In the meantime enjoy the filtering selector and hunt/fates counts"));
         }
 
         public void Dispose()

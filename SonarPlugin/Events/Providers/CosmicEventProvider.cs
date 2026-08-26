@@ -1,4 +1,4 @@
-using Dalamud.Bindings.ImGui;
+using ImGuiNET;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin.Services;
 using DryIocAttributes;
@@ -62,54 +62,12 @@ namespace SonarPlugin.Events.Providers
             this.FrameworkHandlerCore();
         }
 
+        // NOTE: AgentWKSAnnounce (Cosmic Exploration's "WKSAnnounce" addon agent wrapper) doesn't
+        // exist in TC's bundled FFXIVClientStructs - this content is newer than TC's current game
+        // data/API generation. Stubbed to a no-op until TC's data catches up; this only disables
+        // the cosmic red-alert event relay, nothing else in the plugin.
         private unsafe void FrameworkHandlerCore()
         {
-            var rapture = RaptureAtkUnitManager.Instance();
-            if (rapture is null) return;
-
-            var addon = rapture->GetAddonByName("WKSAnnounce");
-            if (addon is null || !addon->IsReady) return;
-
-            var agent = (AgentWKSAnnounce*)this.GameGui.FindAgentInterface(addon).Address;
-            if (agent is null || !agent->IsAddonReady()) return;
-
-            var data = agent->Data;
-            if (data is null) return;
-
-            var state = data->State;
-            if (state is not 1 and not 2) return; // 1 => Red Alert Incoming | 2 => Red Alert Progressing
-
-            var rowId = data->EmergencyInfoRowId;
-            var subRowId = data->EmergencyInfoSubRowId;
-            var id = EventUtils.ToId(EventType.CosmicEmergency, rowId, subRowId);
-
-            var playerPosition = this.Client.Meta.PlayerPosition;
-            if (playerPosition is null) return;
-
-            var relay = new EventRelay()
-            {
-                Id = id,
-
-                WorldId = playerPosition.WorldId,
-                ZoneId = playerPosition.ZoneId,
-                InstanceId = playerPosition.InstanceId,
-                Coords = new(0, 0, 0),
-
-                
-
-            };
-
-
-            if (state is 1)
-            {
-                // Red Alert Incoming
-            }
-            else if (state is 2)
-            {
-                // Red Alert Progressing
-                var (progress2, progress1) = Math.DivRem(data->StateProgress, 256);
-                var totalProgress = (progress1 + progress2) / 200f;
-            }
 
 
 

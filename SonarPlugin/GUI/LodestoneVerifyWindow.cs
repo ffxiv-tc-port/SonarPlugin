@@ -1,5 +1,6 @@
-﻿using Dalamud.Interface.Windowing;
-using Dalamud.Bindings.ImGui;
+﻿using CheapLoc;
+using Dalamud.Interface.Windowing;
+using ImGuiNET;
 using Sonar;
 using Sonar.Config;
 using Sonar.Data;
@@ -37,7 +38,7 @@ namespace SonarPlugin.GUI
         private WindowSystem Windows { get; }
 
         [SuppressMessage("Critical Code Smell", "S3265", Justification = "Its a flag!")]
-        public LodestoneVerifyWindow(SonarConfig config, SonarPlugin plugin, SonarClient client, WindowSystem windows) : base("Sonar Lodestone Verification")
+        public LodestoneVerifyWindow(SonarConfig config, SonarPlugin plugin, SonarClient client, WindowSystem windows) : base($"{Loc.Localize("LodestoneVerifyWindowTitle", "Sonar Lodestone Verification")}###SonarLodestoneVerification")
         {
             this.Config = config;
             this.Configuration = plugin.Configuration;
@@ -81,7 +82,7 @@ namespace SonarPlugin.GUI
 
         public override void Draw()
         {
-            ImGui.TextWrapped("Lodestone Verification is needed for your currently logged in character:");
+            ImGui.TextWrapped(Loc.Localize("LodestoneVerifyNeeded", "Lodestone Verification is needed for your currently logged in character:"));
             ImGui.Indent(); this.DrawPlayerInfo(); ImGui.Unindent();
 
             ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
@@ -91,7 +92,7 @@ namespace SonarPlugin.GUI
             this.DrawVerification();
 
             ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
-            ImGui.TextWrapped("You can suppress this dialog at /sonarconfig General tab, Lodestone Settings.");
+            ImGui.TextWrapped(Loc.Localize("LodestoneVerifySuppressHint", "You can suppress this dialog at /sonarconfig General tab, Lodestone Settings."));
         }
 
         private void DrawPlayerInfo()
@@ -115,63 +116,63 @@ namespace SonarPlugin.GUI
             {
                 case LodestoneVerificationReason.Unknown:
                     {
-                        ImGui.TextWrapped("Unspecified Reason.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneReasonUnknown", "Unspecified Reason."));
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Please contact Sonar support for assistance.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneReasonUnknownHelp", "Please contact Sonar support for assistance."));
                     }
                     break;
 
                 case LodestoneVerificationReason.NotVerified:
                     {
-                        ImGui.TextWrapped("Your character is currently not verified.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneReasonNotVerified", "Your character is currently not verified."));
                     }
                     break;
 
                 case LodestoneVerificationReason.NotFound:
                     {
-                        ImGui.TextWrapped("Your character lodestone profile is not found.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneReasonNotFound", "Your character lodestone profile is not found."));
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Make your character's Lodestone profile searchable and public. You can set it back to private after verification is done.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneReasonNotFoundHelp", "Make your character's Lodestone profile searchable and public. You can set it back to private after verification is done."));
                     }
                     break;
 
                 case LodestoneVerificationReason.PrivateProfile:
                     {
-                        ImGui.TextWrapped("Your character lodestone profile is private.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneReasonPrivate", "Your character lodestone profile is private."));
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Make your Lodestone profile public to be able to verify. You can set it back to private after verification is done.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneMakePublicHelp", "Make your Lodestone profile public to be able to verify. You can set it back to private after verification is done."));
                     }
                     break;
 
                 case LodestoneVerificationReason.Renamed:
                     {
-                        ImGui.TextWrapped("Your character has been renamed and your character's lodestone profile is private.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneReasonRenamed", "Your character has been renamed and your character's lodestone profile is private."));
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Make your Lodestone profile public to be able to verify. You can set it back to private after verification is done.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneMakePublicHelp", "Make your Lodestone profile public to be able to verify. You can set it back to private after verification is done."));
                     }
                     break;
 
                 case LodestoneVerificationReason.HashMismatch:
                     {
-                        ImGui.TextWrapped("Your character hash mismatch and your character's lodestone profile is private.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneReasonHashMismatch", "Your character hash mismatch and your character's lodestone profile is private."));
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Make your Lodestone profile public to be able to verify. You can set it back to private after verification is done.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneMakePublicHelp", "Make your Lodestone profile public to be able to verify. You can set it back to private after verification is done."));
                     }
                     break;
 
                 case LodestoneVerificationReason.Stale:
                     {
-                        ImGui.TextWrapped("Your character lodestone information stored at Sonar is stale.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneReasonStale", "Your character lodestone information stored at Sonar is stale."));
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Make your Lodestone profile public to be able to verify. You can set it back to private after verification is done.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneMakePublicHelp", "Make your Lodestone profile public to be able to verify. You can set it back to private after verification is done."));
                     }
                     break;
 
                 default:
                     {
-                        ImGui.TextWrapped("Unable to provide reason.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneReasonDefault", "Unable to provide reason."));
                         ImGui.Spacing();
-                        ImGui.TextWrapped("Update your Sonar plugin or contact support for assistance.");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneReasonDefaultHelp", "Update your Sonar plugin or contact support for assistance."));
                     }
                     break;
             }
@@ -179,11 +180,11 @@ namespace SonarPlugin.GUI
             if (this._need.Code is not null)
             {
                 ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
-                ImGui.TextWrapped("Add the following code into your chracter's lodestone profile bio:");
+                ImGui.TextWrapped(Loc.Localize("LodestoneAddCode", "Add the following code into your chracter's lodestone profile bio:"));
                 ImGui.Indent();
                 ImGui.TextUnformatted(this._need.Code);
                 ImGui.SameLine();
-                if (ImGui.Button("Copy")) ImGui.SetClipboardText(this._need.Code);
+                if (ImGui.Button(Loc.Localize("CopyButton", "Copy"))) ImGui.SetClipboardText(this._need.Code);
                 ImGui.Unindent();
             }
 
@@ -198,10 +199,10 @@ namespace SonarPlugin.GUI
 
             if (this._need.LodestoneId !=-1)
             {
-                if (ImGui.Button("Open Lodestone Profile")) _ = Task.Run(() => ShellUtils.ShellExecute($"{baseUrl}/character/{this._need.LodestoneId}/"));
+                if (ImGui.Button(Loc.Localize("LodestoneOpenProfile", "Open Lodestone Profile"))) _ = Task.Run(() => ShellUtils.ShellExecute($"{baseUrl}/character/{this._need.LodestoneId}/"));
                 ImGui.SameLine();
             }
-            if (ImGui.Button("Open Lodestone Website")) _ = Task.Run(() => ShellUtils.ShellExecute($"{baseUrl}"));
+            if (ImGui.Button(Loc.Localize("LodestoneOpenWebsite", "Open Lodestone Website"))) _ = Task.Run(() => ShellUtils.ShellExecute($"{baseUrl}"));
         }
 
         private void DrawVerification()
@@ -211,37 +212,37 @@ namespace SonarPlugin.GUI
             var curTime = UnixTimeHelper.SyncedUnixNow;
             var reqTime = this._need.RequiredTime;
 
-            if (this._need.Required) ImGui.TextWrapped("This verification is a requirement.");
+            if (this._need.Required) ImGui.TextWrapped(Loc.Localize("LodestoneVerifyRequired", "This verification is a requirement."));
             else if (reqTime > 0)
             {
                 var remTime = reqTime - curTime;
                 if (remTime < SonarConstants.EarthMinute * 1) // This is to avoid confusion of being allowed a few seconds (might still cause confusion anyway....)
                 {
-                    ImGui.TextWrapped("This verification is a requirement.");
+                    ImGui.TextWrapped(Loc.Localize("LodestoneVerifyRequired", "This verification is a requirement."));
                 }
                 else if (remTime > SonarConstants.EarthDay * 2)
                 {
-                    ImGui.TextWrapped($"This verification will become a requirement in {(int)(remTime / SonarConstants.EarthDay)} days.");
+                    ImGui.TextWrapped(string.Format(Loc.Localize("LodestoneVerifyRequiredDays", "This verification will become a requirement in {0} days."), (int)(remTime / SonarConstants.EarthDay)));
                 }
                 else if (remTime > SonarConstants.EarthHour * 1)
                 {
-                    ImGui.TextWrapped($"This verification will become a requirement in {(int)(remTime / SonarConstants.EarthHour)} hours.");
+                    ImGui.TextWrapped(string.Format(Loc.Localize("LodestoneVerifyRequiredHours", "This verification will become a requirement in {0} hours."), (int)(remTime / SonarConstants.EarthHour)));
                 }
                 else if (remTime > SonarConstants.EarthMinute * 5)
                 {
-                    ImGui.TextWrapped($"This verification will become a requirement in {(int)(remTime / SonarConstants.EarthMinute)} minutes.");
+                    ImGui.TextWrapped(string.Format(Loc.Localize("LodestoneVerifyRequiredMinutes", "This verification will become a requirement in {0} minutes."), (int)(remTime / SonarConstants.EarthMinute)));
                 }
                 else
                 {
-                    ImGui.TextWrapped("This verification will become a requirement in less than 5 minutes.");
+                    ImGui.TextWrapped(Loc.Localize("LodestoneVerifyRequiredSoon", "This verification will become a requirement in less than 5 minutes."));
                 }
             }
             else
             {
-                ImGui.TextWrapped("This verification is not a requirement at this time.");
+                ImGui.TextWrapped(Loc.Localize("LodestoneVerifyNotRequired", "This verification is not a requirement at this time."));
             }
 
-            if (ImGui.Button("Verify"))
+            if (ImGui.Button(Loc.Localize("LodestoneVerifyButton", "Verify")))
             {
                 this.Meta.RequestVerification();
                 this._requestTimestamp = curTime;
@@ -255,20 +256,20 @@ namespace SonarPlugin.GUI
                     var runTime = curTime - this._requestTimestamp;
                     if (runTime > SonarConstants.EarthSecond * 30)
                     {
-                        ImGui.TextWrapped("Verification timeout");
+                        ImGui.TextWrapped(Loc.Localize("LodestoneVerifyTimeout", "Verification timeout"));
                     }
                     else
                     {
                         var dots = new string(Enumerable.Repeat('.', ((int)(runTime / SonarConstants.EarthSecond * 3) % 3) + 1).ToArray());
-                        ImGui.TextWrapped($"Verification in progress{dots}");
+                        ImGui.TextWrapped($"{Loc.Localize("LodestoneVerifyInProgress", "Verification in progress")}{dots}");
                     }
                 }
                 else
                 {
-                    ImGui.TextWrapped("Verification failed"); // Window wouldn't be visible if succeded
+                    ImGui.TextWrapped(Loc.Localize("LodestoneVerifyFailed", "Verification failed")); // Window wouldn't be visible if succeded
                 }
             }
-            ImGui.TextWrapped("You'll only be able to use Sonar in local mode if not verified by the time this becomes a requirement.");
+            ImGui.TextWrapped(Loc.Localize("LodestoneVerifyLocalModeWarning", "You'll only be able to use Sonar in local mode if not verified by the time this becomes a requirement."));
         }
 
         private void NeededHandler(SonarMeta _, LodestoneVerificationNeeded need)

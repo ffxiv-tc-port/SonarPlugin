@@ -45,6 +45,9 @@ namespace SonarPlugin.Config
         public PluginLanguage Language = PluginLanguage.English;
         public SuppressVerification SuppressVerification = SuppressVerification.None;
         public LocalizationConfig Localization = new();
+
+        /// <summary>TC fork: whether the one-time Traditional Chinese language default has been applied.</summary>
+        public bool TcLanguageDefaultApplied = false;
         public SonarConfigurationColors Colors = new();
 
         public ClickAction MiddleClick = ClickAction.Chat;

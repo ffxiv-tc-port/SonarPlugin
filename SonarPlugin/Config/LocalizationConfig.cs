@@ -94,6 +94,9 @@ namespace SonarPlugin.Config
         {
             if (!s_presets.TryGetValue(preset, out var config)) return;
             this.Db = config.Db; this.Plugin = config.Plugin; this.Sonar = config.Dll;
+
+            // TC fork: keep the CheapLoc-backed strings (in-game windows) in sync with the active preset.
+            EnumLocUtils.ApplyCheapLoc(preset);
         }
     }
 }

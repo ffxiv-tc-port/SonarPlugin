@@ -1,6 +1,7 @@
-﻿using Dalamud.Interface.Windowing;
+﻿using CheapLoc;
+using Dalamud.Interface.Windowing;
 using DryIoc.ImTools;
-using Dalamud.Bindings.ImGui;
+using ImGuiNET;
 using Sonar;
 using Sonar.Enums;
 using Sonar.Models;
@@ -43,11 +44,11 @@ namespace SonarPlugin.GUI
         private WindowSystem Windows { get; }
         private SonarClient Client { get; }
 
-        private SupportWindow(WindowSystem windows, SonarClient client, int id) : base($"Sonar Support##{id}")
+        private SupportWindow(WindowSystem windows, SonarClient client, int id) : base($"{Loc.Localize("SupportWindowTitle", "Sonar Support")}###SonarSupport{id}")
         {
             this.Windows = windows;
             this.Client = client;
-            this.modalTitleWithId = $"Sonar Support Result##{id:X}";
+            this.modalTitleWithId = $"{Loc.Localize("SupportResultTitle", "Sonar Support Result")}###SonarSupportResult{id:X}";
             this.Flags = ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings;
             this.Size = new(0, 0);
 
@@ -86,14 +87,14 @@ namespace SonarPlugin.GUI
             var bodyText = this.Messaage.Body ?? string.Empty;
             var playerText = this.Messaage.Player ?? string.Empty;
 
-            ImGui.Text("* = required");
-            ImGui.Combo("Type", ref supportTypeIndex, GetSupportTypesStrings(SonarLanguage.English), supportTypes.Length);
-            ImGui.InputText($"Contact{(this.Messaage.FromRequired ? "*" : string.Empty)}", ref contactText, SupportMessage.MaximumContactLength);
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip("We cannot contact you in-game.\nProvide an external method of contact.");
-            ImGui.InputText("Title", ref titleText, SupportMessage.MaximumTitleLength);
-            ImGui.InputTextMultiline("Body*", ref bodyText, SupportMessage.MaximumContentLength, new(0, 0));
-            ImGui.InputText($"Player Name{(this.Messaage.PlayerRequired ? "*" : string.Empty)}", ref playerText, SupportMessage.MaximumPlayerNameLength);
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{(this.Messaage.PlayerRequired ? "(Required) " : string.Empty)}Provide character and world name");
+            ImGui.Text(Loc.Localize("SupportRequiredLegend", "* = required"));
+            ImGui.Combo($"{Loc.Localize("SupportTypeLabel", "Type")}###supportType", ref supportTypeIndex, GetSupportTypesStrings(SonarLanguage.English), supportTypes.Length);
+            ImGui.InputText($"{Loc.Localize("SupportContactLabel", "Contact")}{(this.Messaage.FromRequired ? "*" : string.Empty)}###supportContact", ref contactText, SupportMessage.MaximumContactLength);
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(Loc.Localize("SupportContactTooltip", "We cannot contact you in-game.\nProvide an external method of contact."));
+            ImGui.InputText($"{Loc.Localize("SupportTitleLabel", "Title")}###supportTitle", ref titleText, SupportMessage.MaximumTitleLength);
+            ImGui.InputTextMultiline($"{Loc.Localize("SupportBodyLabel", "Body")}*###supportBody", ref bodyText, SupportMessage.MaximumContentLength, new(0, 0));
+            ImGui.InputText($"{Loc.Localize("SupportPlayerNameLabel", "Player Name")}{(this.Messaage.PlayerRequired ? "*" : string.Empty)}###supportPlayerName", ref playerText, SupportMessage.MaximumPlayerNameLength);
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{(this.Messaage.PlayerRequired ? Loc.Localize("SupportRequiredPrefix", "(Required) ") : string.Empty)}{Loc.Localize("SupportPlayerNameTooltip", "Provide character and world name")}");
 
             this.Messaage.Type = supportTypes[supportTypeIndex];
             this.Messaage.Contact = contactText;
@@ -101,7 +102,7 @@ namespace SonarPlugin.GUI
             this.Messaage.Body = bodyText;
             this.Messaage.Player = playerText;
 
-            if (ImGui.Button("Send"))
+            if (ImGui.Button(Loc.Localize("SupportSendButton", "Send")))
             {
                 var logs = this.Messaage.Logs;
                 if (!this.AddLogs) this.Messaage.Logs = string.Empty; // Respect user not wanting to add logs
@@ -120,12 +121,12 @@ namespace SonarPlugin.GUI
 
             ImGui.SameLine();
 
-            if (ImGui.Button("Cancel"))
+            if (ImGui.Button(Loc.Localize("SupportCancelButton", "Cancel")))
             {
                 this.IsOpen = false;
             }
 
-            ImGui.Checkbox("Add Logs or Additional Text", ref this._logsVisible);
+            ImGui.Checkbox(Loc.Localize("SupportAddLogsCheckbox", "Add Logs or Additional Text"), ref this._logsVisible);
 
             ImGui.EndGroup();
         }
@@ -135,7 +136,7 @@ namespace SonarPlugin.GUI
             ImGui.BeginGroup();
 
             var logs = this.Messaage.Logs;
-            ImGui.InputTextMultiline("Logs", ref logs, SupportMessage.MaximumLogsLength, new(0, 0));
+            ImGui.InputTextMultiline($"{Loc.Localize("SupportLogsLabel", "Logs")}###supportLogs", ref logs, SupportMessage.MaximumLogsLength, new(0, 0));
             this.Messaage.Logs = logs;
 
             ImGui.EndGroup();
@@ -151,13 +152,13 @@ namespace SonarPlugin.GUI
                 ImGui.Spacing();
                 ImGui.TextUnformatted(this.responseText);
                 ImGui.Spacing();
-                if (!string.IsNullOrWhiteSpace(this.responseException) && ImGui.CollapsingHeader("Exception details"))
+                if (!string.IsNullOrWhiteSpace(this.responseException) && ImGui.CollapsingHeader(Loc.Localize("SupportExceptionDetails", "Exception details")))
                 {
                     ImGui.Indent();
                     ImGui.TextUnformatted(this.responseException);
                     ImGui.Unindent();
                 }
-                if (ImGui.Button("Close")) this._responseVisible = false;
+                if (ImGui.Button(Loc.Localize("SupportCloseButton", "Close"))) this._responseVisible = false;
             }
             else
             {
@@ -188,12 +189,12 @@ namespace SonarPlugin.GUI
             {
                 supportTypesLanguageStrings[lang] = ret = new()
                 {
-                    { SupportType.Feedback, "Feedback" },
-                    { SupportType.Suggestion, "Suggestion" },
-                    { SupportType.BugReport, "Bug Report" },
-                    { SupportType.Question, "Question" },
-                    { SupportType.PlayerReport, "Player Report" },
-                    { SupportType.Appeal, "Appeal" },
+                    { SupportType.Feedback, Loc.Localize("SupportTypeFeedback", "Feedback") },
+                    { SupportType.Suggestion, Loc.Localize("SupportTypeSuggestion", "Suggestion") },
+                    { SupportType.BugReport, Loc.Localize("SupportTypeBugReport", "Bug Report") },
+                    { SupportType.Question, Loc.Localize("SupportTypeQuestion", "Question") },
+                    { SupportType.PlayerReport, Loc.Localize("SupportTypePlayerReport", "Player Report") },
+                    { SupportType.Appeal, Loc.Localize("SupportTypeAppeal", "Appeal") },
                 };
             }
             return ret;

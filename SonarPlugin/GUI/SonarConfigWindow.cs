@@ -10,7 +10,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using Dalamud.Bindings.ImGui;
+using ImGuiNET;
 using Sonar;
 using Sonar.Data;
 using Sonar.Data.Extensions;
@@ -37,7 +37,6 @@ using System.Threading.Tasks;
 using static SonarPlugin.Utility.ShellUtils;
 using Dalamud.Interface;
 using SonarPlugin.Sounds;
-using Dalamud.Plugin.VersionInfo;
 using DryIocAttributes;
 using SonarUtils.Threading;
 using System.Globalization;
@@ -59,7 +58,6 @@ namespace SonarPlugin.GUI
         private IDalamudPluginInterface PluginInterface { get; }
         private SonarClient Client { get; }
         private IDataManager Data { get; }
-        private IDalamudVersionInfo DalamudVersion { get; }
         private SoundEngine Sounds { get; }
         private FileDialogManager FileDialogs { get; }
         private IndexProvider Index { get; }
@@ -78,14 +76,13 @@ namespace SonarPlugin.GUI
         private readonly Dictionary<uint, string> _fateZonesCache = new();
         private readonly int fateTableColumnCount = Enum.GetNames(typeof(FateSelectionColumns)).Length;
 
-        public SonarConfigWindow(SonarPlugin plugin, SonarPluginStub stub, IDalamudPluginInterface pluginInterface, SonarClient client, IDataManager data, IDalamudVersionInfo dalamudVersion, AudioPlaybackEngine audio, SoundEngine sounds, FileDialogManager fileDialogs, IndexProvider index, IPluginLog logger) : base("Sonar Configuration")
+        public SonarConfigWindow(SonarPlugin plugin, SonarPluginStub stub, IDalamudPluginInterface pluginInterface, SonarClient client, IDataManager data, AudioPlaybackEngine audio, SoundEngine sounds, FileDialogManager fileDialogs, IndexProvider index, IPluginLog logger) : base("Sonar Configuration")
         {
             this.Plugin = plugin;
             this.Stub = stub;
             this.PluginInterface = pluginInterface;
             this.Client = client;
             this.Data = data;
-            this.DalamudVersion = dalamudVersion;
             this.Sounds = sounds;
             this.Audio = audio;
             this.FileDialogs = fileDialogs;
@@ -334,10 +331,10 @@ namespace SonarPlugin.GUI
                     using var indent = ImRaii.PushIndent();
                     using (var color = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow))
                     {
-                        ImGui.TextUnformatted("Localization is still in development!");
-                        ImGui.TextUnformatted("- Lots of strings are still not covered");
-                        ImGui.TextUnformatted("- Strings may change between releases");
-                        ImGui.TextUnformatted("Use localization at your own risk!");
+                        ImGui.TextUnformatted(Loc.Localize("LocalizationInDevelopment1", "Localization is still in development!"));
+                        ImGui.TextUnformatted(Loc.Localize("LocalizationInDevelopment2", "- Lots of strings are still not covered"));
+                        ImGui.TextUnformatted(Loc.Localize("LocalizationInDevelopment3", "- Strings may change between releases"));
+                        ImGui.TextUnformatted(Loc.Localize("LocalizationInDevelopment4", "Use localization at your own risk!"));
                     }
                     this._save |= SonarWidgets.Localization(this.Plugin.Configuration.Localization, this.FileDialogs);
                 }
@@ -994,7 +991,7 @@ namespace SonarPlugin.GUI
                 ImGui.Text($"{this.Stub.PluginName} v{Assembly.GetExecutingAssembly().GetName().Version}");
                 ImGui.Text($"{Loc.Localize("AboutSonarBroughtBy", "Brought to you by the Sonar Team")}");
 
-                if (ImGui.Button("Sonar Support Discord##SonarDiscord"))
+                if (ImGui.Button($"{Loc.Localize("AboutSonarDiscordButton", "Sonar Support Discord")}##SonarDiscord"))
                 {
                     this._tasker.AddTask(Task.Run(() => { ShellExecute("https://discord.gg/K7y24Rr"); }));
                 }
@@ -1002,7 +999,7 @@ namespace SonarPlugin.GUI
 
                 ImGui.SameLine();
 
-                if (ImGui.Button("Sonar Patreon##SonarPatreon"))
+                if (ImGui.Button($"{Loc.Localize("AboutSonarPatreonButton", "Sonar Patreon")}##SonarPatreon"))
                 {
                     this._tasker.AddTask(Task.Run(() => { ShellExecute("https://www.patreon.com/ffxivsonar"); }));
                 }
@@ -1049,7 +1046,8 @@ namespace SonarPlugin.GUI
                 ImGui.BeginChild("##debugVersionInfo", new Vector2(0, 100 * ImGui.GetIO().FontGlobalScale), true, ImGuiWindowFlags.None);
                 {
                     ImGui.Text($"{this.Stub.PluginName} v{Assembly.GetExecutingAssembly().GetName().Version}");
-                    ImGui.Text($"Dalamud {this.DalamudVersion.Version} (Git: {this.DalamudVersion.GitHash})");
+                    // NOTE: IDalamudVersionInfo doesn't exist in TC's Dalamud - just show the loaded assembly version.
+                    ImGui.Text($"Dalamud {typeof(Dalamud.Utility.Util).Assembly.GetName().Version}");
                     ImGui.Text($"FFXIV {VersionUtils.GetGameVersion(this.Data)}");
 
                     ImGui.Text($"Client Hash: ");
