@@ -65,7 +65,10 @@ namespace SonarPlugin
             this.Commands.AddHandler("/sonarunload", new CommandInfo(this.SonarUnloadCommand) { HelpMessage = "Turn off / disable Sonar", ShowInHelp = false });
             this.Commands.AddHandler("/sonarreload", new CommandInfo(this.SonarReloadCommand) { HelpMessage = "Reload Sonar", ShowInHelp = false });
 
-            this.InitializeSonar();
+            // Constructed synchronously by Dalamud on plugin load; InitializeSonar() blocks on
+            // network connect via StartServices(), so it must not run inline here. Same
+            // backgrounding pattern already used by SonarLoadCommand below.
+            Task.Factory.StartNew(this.InitializeSonar, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
         private void SonarLoadCommand(string? _ = null, string? __ = null)
