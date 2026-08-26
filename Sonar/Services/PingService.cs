@@ -91,7 +91,7 @@ namespace Sonar.Services
 
         public void Dispose()
         {
-            this.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            this.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
         }
     }
 

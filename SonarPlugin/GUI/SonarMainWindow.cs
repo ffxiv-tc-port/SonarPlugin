@@ -77,7 +77,7 @@ namespace SonarPlugin.GUI
         private static Vector2 iconSize = new(16, 16);
         private const float detailLabelOffset = 100.0f;
 
-        private readonly IDalamudTextureWrap _redFlag;
+        private IDalamudTextureWrap _redFlag;
 
         public SonarMainWindow(SonarPlugin plugin, SonarClient client, RelayTrackerViews views, HuntNotifier huntsNotifier, FateNotifier fateNotifier, AetheryteManager aetherytes, MapTextureProvider mapTextures, ResourceHelper resources, PlaceholderFormatter formatter, IUiBuilder ui, IGameGui gameGui, IFramework framework, IDalamudPluginInterface pluginInterface, IPluginLog logger)
         {
@@ -97,11 +97,36 @@ namespace SonarPlugin.GUI
             this.Logger = logger;
 
             this._visible = this.Plugin.Configuration.OverlayVisibleByDefault;
-            this._redFlag = this.Resources.LoadIcon("redflag.png");
+
+            // Use a cheap placeholder immediately; the real icon is decoded off the main thread
+            // and swapped in once ready (was previously a synchronous .Result block here, which
+            // stalled the ctor - and thus plugin load - on texture decode/GPU upload).
+            this._redFlag = this.Resources.LoadFallbackIcon();
+            _ = this.LoadRedFlagIconAsync();
 
             this.Logger.Information("Sonar Main Overlay Initialized");
 
             this.PluginInterface.UiBuilder.OpenMainUi += this.OpenWindow;
+        }
+
+        private async Task LoadRedFlagIconAsync()
+        {
+            try
+            {
+                var icon = await this.Resources.LoadIconAsync("redflag.png").ConfigureAwait(false);
+                var old = this._redFlag;
+                // Publish on the framework thread so the swap can't race a concurrent Draw()
+                // (which also runs on the framework/render thread) mid-frame.
+                await this.Framework.RunOnFrameworkThread(() =>
+                {
+                    this._redFlag = icon;
+                    old.Dispose();
+                }).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                this.Logger.Error(ex, "Failed to load red flag icon asynchronously");
+            }
         }
 
         private void OpenWindow()

@@ -95,7 +95,7 @@ namespace Sonar.Sockets
             {
                 try { this._cts.Cancel(); } catch (ObjectDisposedException) { /*Swallow */ }
                 this._cts.Dispose();
-                this._connection.DisposeAsync().AsTask().GetAwaiter().GetResult(); // No .Dispose available
+                this._connection.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5)); // No .Dispose available; bounded instead of GetAwaiter().GetResult()'s unbounded block
                 this._sendBlock.Complete();
             }
             catch
