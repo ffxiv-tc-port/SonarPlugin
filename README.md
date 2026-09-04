@@ -1,40 +1,23 @@
-# SonarDistrib
-SonarPlugin's Source Code mirror and all dependencies.
-- [Sonar News](https://news.ffxivsonar.com)
-- [Sonar Support Discord](https://discord.gg/K7y24Rr)
-- [Sonar Patreon](https://www.patreon.com/ffxivsonar)
+# SonarPlugin（Sonar）
 
-## Building
-To build SonarPlugin, you can:
-- Open `Sonar.sln` solution and compile the `SonarPlugin` project
-- Alternatively: `dotnet build -c Release SonarPlugin/SonarPlugin.csproj`
+自動回報與接收其他 Sonar 使用者回報的狩獵標記／FATE 情報，並顯示於清單與地圖上。
 
-## Support
-Support is provided exclusively at the [Sonar Support Discord](https://discord.gg/K7y24Rr)
-Issues and Pull Requests are welcome, however I tend not to check often (even with email notifications! :sob:)
-If you need immediate attention join the Discord!
+原作者：[FFXIV-Sonar/SonarDistrib](https://github.com/FFXIV-Sonar/SonarDistrib)
+支援：[Sonar 支援 Discord](https://discord.gg/K7y24Rr) ｜ [Sonar 新聞](https://news.ffxivsonar.com)
 
-## Components
-The sonar source code is contained as multiple components
+## 功能
 
-### SonarPlugin
-The plugin part of Sonar. This is what's installed when installing Sonar under Dalamud.
+- 狩獵標記與 FATE 追蹤：接收其他玩家跨伺服器回報，於清單顯示距離、位置等資訊
+- 自動將自己遇到的狩獵標記／FATE 回報給 Sonar 網路
+- 音效與訊息提醒
+- 主視窗、追蹤器視窗、設定視窗各自獨立
+- 玩家人數統計
 
-### SonarDiagnostics
-Diagnostics and troubleshooting plugin. Sonar repo only.
+## 指令
 
-### Sonar
-Shared library providing the client, core functionality, communiucations, shared functionality and structures of Sonar. This includes a database containing information about Hunts, Fates, Zones, Worlds and Data Centers.
-
-### SonarResources
-Generate the resource files for Sonar to use, which contains hunts, fates and maps information.
-
-### SonarServer
-The server side of Sonar, performing the heavywork of receiving and broadcasting relays for every Sonar client. 
-This is not included in this repo.
-
-### SonarUtils
-Utility code shared by all Sonar components.
-
-### SonarUtils.Tests
-Contains tests for SonarUtils.
+- `/sonar`：開啟主視窗
+- `/sonarconfig`（`/sonarcfg`）：開啟設定
+- `/sonartracker`：開啟追蹤器視窗
+- `/sonarsupport`：開啟支援視窗
+- `/sonaron`（`/sonarenable`）／`/sonaroff`（`/sonardisable`）／`/sonartoggle`：啟用／停用／切換
+- `/sonarerror`：顯示錯誤資訊
