@@ -228,6 +228,15 @@ namespace SonarPlugin.GUI
             if (!this.IsVisible) return false;
             if (!Monitor.TryEnter(this._statesLock, force ? -1 : 0)) return false;
 
+            // Monitor.Exit only runs in the finally below, so unlike a lock statement the catch
+            // body still holds _statesLock. Logger goes through Dalamud's Serilog sink (file I/O
+            // plus locks of its own), so what to write is recorded here and written once the lock
+            // has been released. Level, text and trigger are unchanged.
+            Exception? pendingError = null;
+#if DEBUG
+            string? pendingTiming = null;
+#endif
+
             try
             {
                 var place = this.Client.Meta.PlayerPosition;
@@ -270,18 +279,23 @@ namespace SonarPlugin.GUI
 
 #if DEBUG
                 stopwatch.Stop();
-                this.Logger.Debug($"Tracker queries took {stopwatch.Elapsed.TotalMilliseconds}ms (Count: {this._states.Count})");
+                pendingTiming = $"Tracker queries took {stopwatch.Elapsed.TotalMilliseconds}ms (Count: {this._states.Count})";
 #endif
 
             }
             catch (Exception ex)
             {
-                this.Logger.Error($"{ex}");
+                pendingError = ex;
             }
             finally
             {
                 Monitor.Exit(this._statesLock);
             }
+
+#if DEBUG
+            if (pendingTiming is not null) this.Logger.Debug(pendingTiming);
+#endif
+            if (pendingError is not null) this.Logger.Error($"{pendingError}");
             return true;
         }
 
