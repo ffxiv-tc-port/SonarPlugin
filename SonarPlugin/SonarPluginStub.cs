@@ -4,6 +4,7 @@ using Dalamud.Plugin.Services;
 using DryIoc;
 using SonarPlugin.Utility;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
@@ -95,52 +96,65 @@ namespace SonarPlugin
         private void InitializeSonar()
         {
             if (Volatile.Read(ref this._disposed)) return;
+
+            // Lines produced while _pluginLock is held are recorded here and written once it is
+            // released - see PendingLine. Level, text and trigger are unchanged; only the moment
+            // of the write moved out of the lock.
+            List<PendingLine> pending = [];
             lock (this._pluginLock)
             {
-                if (this.Plugin is not null) return;
+                if (this.Plugin is not null) return; // Nothing recorded yet, nothing to flush.
                 try
                 {
-                    this.Logger.Debug("Starting Sonar");
+                    pending.Add(new(PendingLineKind.LogDebug, null, "Starting Sonar", []));
                     this.Plugin = new(this, this.PluginInterface);
                     this.Plugin.StartServices();
                 }
                 catch (Exception ex)
                 {
-                    this.Logger.Error(ex, string.Empty);
-                    this.ShowError(ex, "initialized", true);
+                    pending.Add(new(PendingLineKind.LogError, ex, string.Empty, []));
+                    BuildErrorReport(pending, ex, "initialized", true);
 
                     if (ex is ContainerException cex && this.Plugin is not null)
                     {
-                        this.Logger.Error(cex.TryGetDetails(this.Plugin.Container));
+                        // Formatted here on purpose: it reads this.Plugin.Container, which is only
+                        // stable while the lock is held. Only the write itself is deferred.
+                        pending.Add(new(PendingLineKind.LogError, null, cex.TryGetDetails(this.Plugin.Container), []));
                     }
                     /* Swallow Exception */
                 }
             }
+
+            this.EmitPending(pending);
         }
 
         private void DestroySonar()
         {
+            List<PendingLine> pending = [];
             lock (this._pluginLock)
             {
-                if (this.Plugin is null) return;
+                if (this.Plugin is null) return; // Nothing recorded yet, nothing to flush.
                 try
                 {
-                    this.Logger.Debug("Stopping Sonar");
+                    pending.Add(new(PendingLineKind.LogDebug, null, "Stopping Sonar", []));
                     this.Plugin.StopServices();
                     this.Plugin.Dispose();
                     this.Plugin = null;
                 }
                 catch (Exception ex)
                 {
-                    this.ShowError(ex, "disposed", false);
-                    this.Logger.Error(ex, string.Empty);
+                    BuildErrorReport(pending, ex, "disposed", false);
+                    pending.Add(new(PendingLineKind.LogError, ex, string.Empty, []));
                     if (ex is ContainerException cex)
                     {
-                        this.Logger.Error(cex.TryGetDetails(this.Plugin!.Container));
+                        // Formatted here on purpose, same reason as InitializeSonar above.
+                        pending.Add(new(PendingLineKind.LogError, null, cex.TryGetDetails(this.Plugin!.Container), []));
                     }
                     /* Swallow Exception */
                 }
             }
+
+            this.EmitPending(pending);
         }
 
         private void ReloadSonar()
@@ -149,18 +163,72 @@ namespace SonarPlugin
             this.InitializeSonar();
         }
 
+        /// <summary>
+        /// A log or chat line produced while <see cref="_pluginLock"/> was held.
+        /// </summary>
+        /// <remarks>
+        /// <para><see cref="IPluginLog"/> ends up in Dalamud's Serilog sink, which does file I/O
+        /// and takes locks of its own, and <see cref="IChatGui"/> hands work over to the framework
+        /// thread. Holding the load/unload lock across either of those puts every other loader
+        /// behind them, so the write is deferred until the lock is released instead.</para>
+        /// <para>Template and values are kept apart rather than pre-formatted, so the structured
+        /// logging properties come out exactly as they did before.</para>
+        /// <para>Deliberately pure data: the write lives in <see cref="EmitPending"/> so that
+        /// nothing reachable from inside the lock can log, not even by accident.</para>
+        /// </remarks>
+        private readonly record struct PendingLine(PendingLineKind Kind, Exception? Exception, string Template, object[] Values);
+
+        private enum PendingLineKind
+        {
+            LogDebug,
+            LogError,
+            ChatError,
+        }
+
+        /// <summary>Writes deferred lines. Must be called with <see cref="_pluginLock"/> released.</summary>
+        private void EmitPending(List<PendingLine> pending)
+        {
+            foreach (var line in pending)
+            {
+                switch (line.Kind)
+                {
+                    case PendingLineKind.LogDebug:
+                        this.Logger.Debug(line.Exception, line.Template, line.Values);
+                        break;
+                    case PendingLineKind.LogError:
+                        this.Logger.Error(line.Exception, line.Template, line.Values);
+                        break;
+                    case PendingLineKind.ChatError:
+                        this.Chat.PrintError(line.Template);
+                        break;
+                }
+            }
+        }
+
         public void ShowError(Exception ex, string action = "initialized", bool isAsync = false)
+        {
+            List<PendingLine> pending = [];
+            BuildErrorReport(pending, ex, action, isAsync);
+            this.EmitPending(pending);
+        }
+
+        /// <summary>
+        /// Records the lines <see cref="ShowError"/> writes, without writing them. Callers holding
+        /// <see cref="_pluginLock"/> use this and flush with <see cref="EmitPending"/> after the
+        /// lock is released; level, text and order are the same either way.
+        /// </summary>
+        private static void BuildErrorReport(List<PendingLine> pending, Exception ex, string action, bool isAsync)
         {
             var header = $"Sonar could not be {action} {(isAsync ? "in async context" : "")}";
             var dalamud = "Check /xllog for more information";
             var footer = "Sonar may be in an undefined state, a game restart may be required.";
             var contact = "If this problem persist report it to https://discord.gg/K7y24Rr";
 
-            this.Logger.Error(header);
-            this.Chat.PrintError(header);
+            pending.Add(new(PendingLineKind.LogError, null, header, []));
+            pending.Add(new(PendingLineKind.ChatError, null, header, []));
 
             try { if (ex is AggregateException aex) ex = aex.Flatten(); } catch { /* Swallow */ }
-            this.Logger.Error($"{ex}");
+            pending.Add(new(PendingLineKind.LogError, null, $"{ex}", []));
             try
             {
                 if (ex is ReflectionTypeLoadException rexs)
@@ -169,18 +237,18 @@ namespace SonarPlugin
                     {
                         var rrex = rex;
                         try { if (rrex is AggregateException aex) rrex = aex.Flatten(); } catch { /* Swallow */ }
-                        this.Logger.Error($"{rrex}");
+                        pending.Add(new(PendingLineKind.LogError, null, $"{rrex}", []));
                     }
                 }
             }
-            catch (Exception ex2) { this.Logger.Error(ex2, string.Empty); }
-            this.Chat.PrintError(dalamud);
+            catch (Exception ex2) { pending.Add(new(PendingLineKind.LogError, ex2, string.Empty, [])); }
+            pending.Add(new(PendingLineKind.ChatError, null, dalamud, []));
 
-            this.Logger.Error(footer);
-            this.Chat.PrintError(footer);
+            pending.Add(new(PendingLineKind.LogError, null, footer, []));
+            pending.Add(new(PendingLineKind.ChatError, null, footer, []));
 
-            this.Logger.Error(contact);
-            this.Chat.PrintError(contact);
+            pending.Add(new(PendingLineKind.LogError, null, contact, []));
+            pending.Add(new(PendingLineKind.ChatError, null, contact, []));
         }
 
         [SuppressMessage("Minor Code Smell", "S3458", Justification = "Clarity")]
