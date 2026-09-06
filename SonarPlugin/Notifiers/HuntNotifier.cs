@@ -96,12 +96,18 @@ namespace SonarPlugin.Notifiers
             if (relay.IsDead()) builder.AddText(" was just killed");
             if (this.Plugin.Configuration.EnableGameChatItalicFont) builder.AddItalicsOff();
 
-            this.Chat.Print(new()
+            // IChatGui.Print* enqueues onto a plain Queue<XivChatEntry> that only the framework
+            // thread drains, with no synchronisation on either side. This runs on the tracker's
+            // background task and on the socket receive loop, so hop to the framework thread
+            // first. Dalamud runs it inline when the caller is already there, so the UI and
+            // command paths keep behaving exactly as before.
+            var entry = new XivChatEntry
             {
                 Type = type,
                 Name = "Sonar",
                 Message = builder.Build()
-            });
+            };
+            this.Framework.RunOnFrameworkThread(() => this.Chat.Print(entry));
         }
 
         public bool CheckSSMinionSpawn(RelayState<HuntRelay> state)

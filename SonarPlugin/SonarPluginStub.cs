@@ -33,13 +33,15 @@ namespace SonarPlugin
         private IDalamudPluginInterface PluginInterface { get; }
         private ICommandManager Commands { get; }
         private IChatGui Chat { get; }
+        private IFramework Framework { get; }
         private IPluginLog Logger { get; }
 
-        public SonarPluginStub(IDalamudPluginInterface pluginInterface, ICommandManager commands, IChatGui chat, IPluginLog logger)
+        public SonarPluginStub(IDalamudPluginInterface pluginInterface, ICommandManager commands, IChatGui chat, IPluginLog logger, IFramework framework)
         {
             this.PluginInterface = pluginInterface;
             this.Commands = commands;
             this.Chat = chat;
+            this.Framework = framework;
             this.Logger = logger;
             
             this.Logger.Debug("Initializing Sonar [Stub]");
@@ -74,19 +76,19 @@ namespace SonarPlugin
 
         private void SonarLoadCommand(string? _ = null, string? __ = null)
         {
-            this.Chat.PrintError("WARNING: /sonarload, /sonarunload and /sonarreload are not yet fixed! Use /sonaron, /sonaroff, /sonarenable and /sonardisable instead.");
+            this.PrintErrorOnFramework("WARNING: /sonarload, /sonarunload and /sonarreload are not yet fixed! Use /sonaron, /sonaroff, /sonarenable and /sonardisable instead.");
             Task.Factory.StartNew(this.InitializeSonar, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
         private void SonarUnloadCommand(string? _ = null, string? __ = null)
         {
-            this.Chat.PrintError("WARNING: /sonarload, /sonarunload and /sonarreload are not yet fixed! Use /sonaron, /sonaroff, /sonarenable and /sonardisable instead.");
+            this.PrintErrorOnFramework("WARNING: /sonarload, /sonarunload and /sonarreload are not yet fixed! Use /sonaron, /sonaroff, /sonarenable and /sonardisable instead.");
             Task.Factory.StartNew(this.DestroySonar, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
         private void SonarReloadCommand(string? _ = null, string? __ = null)
         {
-            this.Chat.PrintError("WARNING: /sonarload, /sonarunload and /sonarreload are not yet fixed! Use /sonaron, /sonaroff, /sonarenable and /sonardisable instead.");
+            this.PrintErrorOnFramework("WARNING: /sonarload, /sonarunload and /sonarreload are not yet fixed! Use /sonaron, /sonaroff, /sonarenable and /sonardisable instead.");
 #if !DEBUG
             return; // TODO: Remove once fixed
 #endif
@@ -199,11 +201,20 @@ namespace SonarPlugin
                         this.Logger.Error(line.Exception, line.Template, line.Values);
                         break;
                     case PendingLineKind.ChatError:
-                        this.Chat.PrintError(line.Template);
+                        this.PrintErrorOnFramework(line.Template);
                         break;
                 }
             }
         }
+
+        /// <summary>
+        /// Prints to chat from the framework thread. <see cref="IChatGui"/>'s Print methods
+        /// enqueue onto a plain <c>Queue</c> that only the framework thread drains, with no
+        /// synchronisation on either side, and this class talks to chat from background tasks
+        /// (load and unload both run on one). Dalamud runs the action inline when the caller is
+        /// already on the framework thread, so the command handlers keep behaving as before.
+        /// </summary>
+        private void PrintErrorOnFramework(string message) => _ = this.Framework.RunOnFrameworkThread(() => this.Chat.PrintError(message));
 
         public void ShowError(Exception ex, string action = "initialized", bool isAsync = false)
         {

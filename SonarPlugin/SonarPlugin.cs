@@ -1,4 +1,5 @@
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.Text;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -24,14 +25,16 @@ namespace SonarPlugin
         private IDalamudPluginInterface PluginInterface { get; }
         private SonarClient Client { get; }
         private IChatGui Chat { get; }
+        private IFramework Framework { get; }
         private AudioPlaybackEngine Audio { get; }
         private IPluginLog Logger { get; }
 
-        public SonarPlugin(IDalamudPluginInterface pluginInterface, SonarClient client, IChatGui chat, AudioPlaybackEngine audio, IPluginLog logger)
+        public SonarPlugin(IDalamudPluginInterface pluginInterface, SonarClient client, IChatGui chat, IFramework framework, AudioPlaybackEngine audio, IPluginLog logger)
         {
             this.PluginInterface = pluginInterface;
             this.Client = client;
             this.Chat = chat;
+            this.Framework = framework;
             this.Audio = audio;
             this.Logger = logger;
 
@@ -118,12 +121,17 @@ namespace SonarPlugin
         private void Events_OnSonarMessage(SonarClient source, string? message)
         {
             if (message is null) return;
-            this.Chat.Print(new()
+            // IChatGui.Print* enqueues onto a plain Queue<XivChatEntry> that only the framework
+            // thread drains, with no synchronisation on either side. Server messages arrive on
+            // the socket receive loop, so hop to the framework thread first. Dalamud runs it
+            // inline when the caller is already there, so callers on that thread are unaffected.
+            var entry = new XivChatEntry
             {
                 Type = this.Configuration.HuntOutputChannel,
                 Name = "Sonar",
                 Message = message
-            });
+            };
+            _ = this.Framework.RunOnFrameworkThread(() => this.Chat.Print(entry));
             this.Logger.Information("Sonar Message Received: {message}");
         }
 

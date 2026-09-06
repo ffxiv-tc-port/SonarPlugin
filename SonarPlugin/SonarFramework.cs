@@ -55,6 +55,16 @@ namespace SonarPlugin
         /// <summary>Sets <see cref="SafetyLevel"/> to <c>0</c>.</summary>
         public void Unsafe() => this.SafetyLevel = 0;
 
+        /// <summary>Runs <paramref name="action"/> on the framework thread, without waiting for it.</summary>
+        /// <remarks>
+        /// For work that must not happen off the framework thread - notably <see cref="IChatGui"/>,
+        /// whose Print methods enqueue onto a plain <c>Queue</c> that only the framework thread
+        /// drains. Dalamud runs the action inline when the caller is already on that thread (and
+        /// while the framework is unloading), so wrapping a call that was already on the right
+        /// thread changes neither its behaviour nor its timing.
+        /// </remarks>
+        public void RunOnFrameworkThread(Action action) => _ = this.Framework.RunOnFrameworkThread(action);
+
         private void Framework_UpdateCore(ReadOnlySpan<Action<SonarFramework>> handlers, SonarFramework framework)
         {
             foreach (var handler in handlers)
