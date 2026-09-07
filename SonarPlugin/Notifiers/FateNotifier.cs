@@ -33,11 +33,11 @@ namespace SonarPlugin.Notifiers
         private IClientState ClientState { get; }
         private SonarClient Client { get; }
         private IRelayTracker<FateRelay> Tracker { get; }
-        private IChatGui Chat { get; }
+        private ChatQueue Chat { get; }
         private SoundEngine Sounds { get; }
         private IPluginLog Logger { get; }
         
-        public FateNotifier(SonarPlugin plugin, SonarFramework framework, IClientState clientState, SonarClient client, IRelayTracker<FateRelay> tracker, IChatGui chat, SoundEngine sounds, IPluginLog logger)
+        public FateNotifier(SonarPlugin plugin, SonarFramework framework, IClientState clientState, SonarClient client, IRelayTracker<FateRelay> tracker, ChatQueue chat, SoundEngine sounds, IPluginLog logger)
         {
             this.Plugin = plugin;
             this.Framework = framework;
@@ -74,18 +74,17 @@ namespace SonarPlugin.Notifiers
             if (relay.IsDead()) builder.AddText(" was just killed");
             if (this.Plugin.Configuration.EnableFateChatItalicFont) builder.AddItalicsOff();
 
-            // IChatGui.Print* enqueues onto a plain Queue<XivChatEntry> that only the framework
-            // thread drains, with no synchronisation on either side. This runs on the tracker's
-            // background task and on the socket receive loop, so hop to the framework thread
-            // first. Dalamud runs it inline when the caller is already there, so the UI and
-            // command paths keep behaving exactly as before.
+            // This runs on the tracker's background task and on the socket receive loop, and
+            // IChatGui may only be used from the framework thread, so the line goes through the
+            // queue that ChatQueue drains there. Queued rather than hopped per line so a burst
+            // of reports keeps its order.
             var entry = new XivChatEntry
             {
                 Type = type,
                 Name = "Sonar",
                 Message = builder.Build()
             };
-            this.Framework.RunOnFrameworkThread(() => this.Chat.Print(entry));
+            this.Chat.Print(entry);
         }
 
         public Task StartAsync(CancellationToken cancellationToken)

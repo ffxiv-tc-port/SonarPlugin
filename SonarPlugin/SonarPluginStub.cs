@@ -32,17 +32,17 @@ namespace SonarPlugin
 
         private IDalamudPluginInterface PluginInterface { get; }
         private ICommandManager Commands { get; }
-        private IChatGui Chat { get; }
-        private IFramework Framework { get; }
         private IPluginLog Logger { get; }
+
+        /// <summary>Chat output funnel, shared with the loaded plugin through the IoC container.</summary>
+        public ChatQueue ChatQueue { get; }
 
         public SonarPluginStub(IDalamudPluginInterface pluginInterface, ICommandManager commands, IChatGui chat, IPluginLog logger, IFramework framework)
         {
             this.PluginInterface = pluginInterface;
             this.Commands = commands;
-            this.Chat = chat;
-            this.Framework = framework;
             this.Logger = logger;
+            this.ChatQueue = new(chat, framework, logger);
             
             this.Logger.Debug("Initializing Sonar [Stub]");
             this.PluginInterface = pluginInterface;
@@ -139,7 +139,9 @@ namespace SonarPlugin
                 try
                 {
                     pending.Add(new(PendingLineKind.LogDebug, null, "Stopping Sonar", []));
-                    this.Plugin.StopServices();
+                    // Recorded rather than written for the same reason as everything else in
+                    // here: StopServices runs with _pluginLock held.
+                    if (!this.Plugin.StopServices()) pending.Add(new(PendingLineKind.LogWarning, null, "Timed out waiting for Sonar services to stop; continuing with disposal", []));
                     this.Plugin.Dispose();
                     this.Plugin = null;
                 }
@@ -183,6 +185,7 @@ namespace SonarPlugin
         private enum PendingLineKind
         {
             LogDebug,
+            LogWarning,
             LogError,
             ChatError,
         }
@@ -197,6 +200,9 @@ namespace SonarPlugin
                     case PendingLineKind.LogDebug:
                         this.Logger.Debug(line.Exception, line.Template, line.Values);
                         break;
+                    case PendingLineKind.LogWarning:
+                        this.Logger.Warning(line.Exception, line.Template, line.Values);
+                        break;
                     case PendingLineKind.LogError:
                         this.Logger.Error(line.Exception, line.Template, line.Values);
                         break;
@@ -208,13 +214,13 @@ namespace SonarPlugin
         }
 
         /// <summary>
-        /// Prints to chat from the framework thread. <see cref="IChatGui"/>'s Print methods
-        /// enqueue onto a plain <c>Queue</c> that only the framework thread drains, with no
-        /// synchronisation on either side, and this class talks to chat from background tasks
-        /// (load and unload both run on one). Dalamud runs the action inline when the caller is
-        /// already on the framework thread, so the command handlers keep behaving as before.
+        /// Queues an error line to be printed on the framework thread. <see cref="IChatGui"/>'s
+        /// Print methods enqueue onto a queue that only the framework thread drains, and this
+        /// class talks to chat from background tasks (load and unload both run on one). The
+        /// queue also keeps consecutive lines in order, which one hop per line would not - see
+        /// <c>ChatQueue</c>.
         /// </summary>
-        private void PrintErrorOnFramework(string message) => _ = this.Framework.RunOnFrameworkThread(() => this.Chat.PrintError(message));
+        private void PrintErrorOnFramework(string message) => this.ChatQueue.PrintError(message);
 
         public void ShowError(Exception ex, string action = "initialized", bool isAsync = false)
         {
@@ -276,6 +282,9 @@ namespace SonarPlugin
             this.Commands.RemoveHandler("/sonarreload");
 
             this.DestroySonar();
+
+            // After DestroySonar, so the report it queues on failure still gets flushed.
+            this.ChatQueue.Dispose();
 
             GC.SuppressFinalize(this);
         }

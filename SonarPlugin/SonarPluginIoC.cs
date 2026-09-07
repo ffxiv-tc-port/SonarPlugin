@@ -149,6 +149,9 @@ namespace SonarPlugin
             // SonarPlugin services
             container.RegisterInstance(this, setup: Setup.With(preventDisposal: true));
             container.RegisterInstance(this.Stub, setup: Setup.With(preventDisposal: true));
+            // Owned by the stub, so it outlives this container across a reload; preventDisposal
+            // keeps container teardown from closing the chat funnel the stub still uses.
+            container.RegisterInstance(this.Stub.ChatQueue, setup: Setup.With(preventDisposal: true));
 
             // Sonar Services
             container.RegisterDelegate(this.CreateSonarClient, Reuse.Singleton);
@@ -208,16 +211,20 @@ namespace SonarPlugin
             this._container.StartAllServicesAsync(this.Logger).Wait();
         }
 
-        public void StopServices()
+        /// <summary>Stops all hosted services, giving up after a bounded wait.</summary>
+        /// <returns>
+        /// <see langword="false"/> if the wait timed out. Returned instead of logged because the
+        /// caller runs this with its load/unload lock held, and <c>IPluginLog</c> goes through
+        /// Dalamud's Serilog sink (file I/O plus locks of its own); the caller writes the warning
+        /// once the lock is released.
+        /// </returns>
+        public bool StopServices()
         {
             // Called synchronously from Dispose() (plugin unload/disable), which Dalamud invokes
             // on the main thread and expects to return promptly. Bound the wait so a slow/hung
             // network teardown can't freeze the game indefinitely; the container is disposed
             // right after regardless, which cleans up anything left dangling.
-            if (!this._container.StopAllServicesAsync(this.Logger).Wait(TimeSpan.FromSeconds(3)))
-            {
-                this.Logger.LogWarning("Timed out waiting for Sonar services to stop; continuing with disposal");
-            }
+            return this._container.StopAllServicesAsync(this.Logger).Wait(TimeSpan.FromSeconds(3));
         }
 
         public void Dispose()
