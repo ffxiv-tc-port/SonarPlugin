@@ -59,7 +59,7 @@ namespace Sonar.Models
             this.Version = SonarConstants.SonarVersion;
             this.Sonar = assembly.GetName().Version!.ToString();
             this.SonarHash = GetAssemblyHash(assembly);
-            this.OperatingSystem = Environment.OSVersion.VersionString;
+            this.OperatingSystem = null; // 刻意不送：這個欄位會隨 ClientHello 送給 Sonar 伺服器，作業系統版本字串可用來辨識本機。
         }
 
         public object Clone() => this.MemberwiseClone();

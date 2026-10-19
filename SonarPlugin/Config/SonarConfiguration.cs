@@ -28,6 +28,10 @@ namespace SonarPlugin.Config
         // Sonar.NET configuration reference
         public SonarConfig SonarConfig = new();
 
+        /// <summary>TC fork: master switch for every connection to the Sonar server (url list download included).</summary>
+        /// <remarks>Off: nothing is sent and only locally seen hunts/fates show. A config written before this key existed reads as off.</remarks>
+        public bool ConnectToSonarServer = false;
+
         // General configurations
         public bool OverlayVisibleByDefault = false;
         public bool EnableLockedOverlays = false;
@@ -45,6 +49,15 @@ namespace SonarPlugin.Config
         public PluginLanguage Language = PluginLanguage.English;
         public SuppressVerification SuppressVerification = SuppressVerification.None;
         public LocalizationConfig Localization = new();
+
+        /// <summary>TC fork: whether the one-time Traditional Chinese language default has been applied.</summary>
+        public bool TcLanguageDefaultApplied = false;
+
+        /// <summary>TC fork: whether the one-time migration that points existing Traditional Chinese users at the
+        /// embedded zh-TW AG.EnumLocalization language files has run. Existing configs predate those language files
+        /// and stored the preset as (ChineseTraditional, null, null), leaving plugin/Sonar strings on the English
+        /// fallback until the user re-picked a language by hand. See <see cref="SonarPlugin.Initialize"/>.</summary>
+        public bool TcEnumLocMigrationApplied = false;
         public SonarConfigurationColors Colors = new();
 
         public ClickAction MiddleClick = ClickAction.Chat;

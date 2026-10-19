@@ -66,7 +66,7 @@ namespace SonarPlugin.Trackers
 
         private unsafe void UpdatePlayerInformation(BattleChara* player)
         {
-            var info = player is not null ? new PlayerInfo() { LoggedIn = true, Name = SeString.Parse(player->Name).TextValue, HomeWorldId = player->HomeWorld, Hash1 = AG.SplitHash64.Compute(player->ContentId), Hash2 = AG.SplitHash64.Compute(player->AccountId) } : new PlayerInfo() { LoggedIn = false, Name = null, HomeWorldId = 0, Hash1 = 0, Hash2 = 0 };
+            var info = player is not null ? new PlayerInfo() { LoggedIn = true, Name = SeString.Parse(player->Name).TextValue, HomeWorldId = player->HomeWorld, Hash1 = AG.SplitHash64.Compute(player->ContentId), Hash2 = 0 } : new PlayerInfo() { LoggedIn = false, Name = null, HomeWorldId = 0, Hash1 = 0, Hash2 = 0 };
             if (this.Client.Meta.UpdatePlayerInfo(info))
             {
                 if (info.LoggedIn is true) this.Logger.Verbose("Logged in as {player:X16}", AG.SplitHash64.Compute(info.ToString()));
@@ -78,8 +78,12 @@ namespace SonarPlugin.Trackers
         {
             if (player is not null)
             {
-                var place = new PlayerPosition() { WorldId = player->CurrentWorld, ZoneId = this.ClientState.TerritoryType, InstanceId = this.ClientState.Instance, Coords = Unsafe.As<CSVector3, Vector3>(ref player->Position).SwapYZ() };
-                if (this.Client.Meta.UpdatePlayerPosition(place).PlaceUpdated) this.Logger.Verbose("Moved to {place}", place);
+                // Reads the "public instance" copy number (e.g. Limsa 2) directly off UIState; Dalamud's own
+                // IClientState.Instance is a cached copy of the same field.
+                var instanceId = UIState.Instance()->PublicInstance.InstanceId;
+                // Runs every frame; this overload only allocates the PlayerPosition when it gets stored.
+                var updated = this.Client.Meta.UpdatePlayerPosition(player->CurrentWorld, this.ClientState.TerritoryType, instanceId, Unsafe.As<CSVector3, Vector3>(ref player->Position).SwapYZ(), out var place);
+                if (updated.PlaceUpdated) this.Logger.Verbose("Moved to {place}", place);
             }
         }
 

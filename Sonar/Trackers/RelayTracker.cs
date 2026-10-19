@@ -133,8 +133,19 @@ namespace Sonar.Trackers
         public bool IsTrackable(RelayState<T> state) => this.IsTrackable(state.Relay);
 
         /// <inheritdoc/>
-        public bool FeedRelay(T relay)
+        public bool FeedRelay(T relay) => this.FeedRelayCore(relay, false);
+
+        /// <inheritdoc/>
+        public bool FeedTransientRelay(T relay) => this.FeedRelayCore(relay, true);
+
+        private static T CloneRelay(T relay) => (T)relay.Clone();
+
+        private bool FeedRelayCore(T relay, bool transient)
         {
+            // What this call stores (new state, queued update). A transient relay is copied once on first need,
+            // so a state and a queue entry made by the same call still share one object, as with FeedRelay.
+            T? retained = transient ? null : relay;
+
             // Avoid invalid relays
             if (!relay.IsValid()) return false;
             var localOnly = relay.GetZone()!.LocalOnly;
@@ -148,17 +159,17 @@ namespace Sonar.Trackers
             // Local only relay, disconnected or not contributing?
             if (localOnly || !this.Client.Connection.IsConnected || !this.Contribute.Compute(s_type) || !this.Client.Modifiers.AllowContribute!.GetValueOrDefault(this.RelayType, true))
             {
-                if (this.IsTrackable(relay) && !((IRelayTracker<T>)this).FeedRelayInternal(relay)) return false;
-                if (this._lockOn.Count is not 0 && this._lockOn.Contains(relay.RelayKey)) this._relayUpdateQueue.Enqueue(relay);
+                if (this.IsTrackable(relay) && !this.UpdateState(relay, null, false, ref retained)) return false;
+                if (this._lockOn.Count is not 0 && this._lockOn.Contains(relay.RelayKey)) this._relayUpdateQueue.Enqueue(retained ??= CloneRelay(relay));
             }
             else
             {
                 if (this.Data.States.TryGetValue(relay.RelayKey, out var state))
                 {
-                    if (!state.IsSimilarData(relay) || !state.IsSameEntity(relay)) this._relayUpdateQueue.Enqueue(relay);
+                    if (!state.IsSimilarData(relay) || !state.IsSameEntity(relay)) this._relayUpdateQueue.Enqueue(retained ??= CloneRelay(relay));
                     else { /* Do nothing */ } // <-- so I don't confused the meaning of this nested if
                 }
-                else this._relayUpdateQueue.Enqueue(relay);
+                else this._relayUpdateQueue.Enqueue(retained ??= CloneRelay(relay));
             }
             return true;
         }
@@ -198,6 +209,14 @@ namespace Sonar.Trackers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool UpdateState(T? newRelay, RelayState<T>? newState, bool isFromServer)
         {
+            var retained = newRelay;
+            return this.UpdateState(newRelay, newState, isFromServer, ref retained);
+        }
+
+        /// <param name="retained">What a new state stores for <paramref name="newRelay"/>; <see langword="null"/> means copy it on first need.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool UpdateState(T? newRelay, RelayState<T>? newState, bool isFromServer, ref T? retained)
+        {
             // This method is intended to be called only with a newRelay or newState
             Debug.Assert(newRelay is not null ^ newState is not null, "Only a new relay or state must be provided"); // This should not happen
 
@@ -232,7 +251,7 @@ namespace Sonar.Trackers
                 // TryGet will succeed on the second loop. (TryGet = TryGetValue).
                 if (this.Data.States.TryGetValue(newRelay.RelayKey, out state!)) break;
 #pragma warning disable S1121 // Assignments should not be made from within sub-expressions (Justification: Immediately used after the loop)
-                if (this.Data.TryAddState(state = newState ?? new(newRelay, now)))
+                if (this.Data.TryAddState(state = newState ?? new(retained ??= CloneRelay(newRelay), now)))
 #pragma warning restore S1121 // Assignments should not be made from within sub-expressions
                 {
                     isNew = true;

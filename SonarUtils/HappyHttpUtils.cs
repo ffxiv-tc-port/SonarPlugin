@@ -27,11 +27,17 @@ namespace SonarUtils
             };
         }
 
+        /// <param name="timeout">Per request timeout, or <see langword="null"/> for HttpClient's 100 second default.</param>
+        // Opt-in rather than defaulted: the other caller hands this client to
+        // ClientWebSocket.ConnectAsync, which already bounds its own handshake.
         [SuppressMessage("Security", "CA5394", Justification = "Intended.")]
-        public static HttpClient CreateRandomlyHappyClient(double happyChance = 0.5)
+        [SuppressMessage("Reliability", "CA2000", Justification = "Ownership passed to caller.")]
+        public static HttpClient CreateRandomlyHappyClient(double happyChance = 0.5, TimeSpan? timeout = null)
         {
-            return System.Random.Shared.NextDouble() < happyChance ?
+            var client = System.Random.Shared.NextDouble() < happyChance ?
                 CreateHttpClient() : new HttpClient();
+            if (timeout is not null) client.Timeout = timeout.Value;
+            return client;
         }
 
         [SuppressMessage("Security", "CA5394", Justification = "Intended.")]

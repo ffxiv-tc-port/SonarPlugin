@@ -37,7 +37,6 @@ using System.Threading.Tasks;
 using static SonarPlugin.Utility.ShellUtils;
 using Dalamud.Interface;
 using SonarPlugin.Sounds;
-using Dalamud.Plugin.VersionInfo;
 using DryIocAttributes;
 using SonarUtils.Threading;
 using System.Globalization;
@@ -59,7 +58,7 @@ namespace SonarPlugin.GUI
         private IDalamudPluginInterface PluginInterface { get; }
         private SonarClient Client { get; }
         private IDataManager Data { get; }
-        private IDalamudVersionInfo DalamudVersion { get; }
+        private DalamudVersionInfo DalamudVersion { get; }
         private SoundEngine Sounds { get; }
         private FileDialogManager FileDialogs { get; }
         private IndexProvider Index { get; }
@@ -78,7 +77,15 @@ namespace SonarPlugin.GUI
         private readonly Dictionary<uint, string> _fateZonesCache = new();
         private readonly int fateTableColumnCount = Enum.GetNames(typeof(FateSelectionColumns)).Length;
 
-        public SonarConfigWindow(SonarPlugin plugin, SonarPluginStub stub, IDalamudPluginInterface pluginInterface, SonarClient client, IDataManager data, IDalamudVersionInfo dalamudVersion, AudioPlaybackEngine audio, SoundEngine sounds, FileDialogManager fileDialogs, IndexProvider index, IPluginLog logger) : base("Sonar Configuration")
+        private static readonly (CityState cityState, CityStateMetaAttribute? meta)[] s_cityStateValues = [.. Enum.GetValues<CityState>().Select(cityState => (cityState, cityState.GetMeta()))];
+        private static readonly HuntRank[] s_huntRanksReversed = [.. Enum.GetValues<HuntRank>().AsEnumerable().Reverse()];
+        private static readonly ExpansionPack[] s_expansionPacks = Enum.GetValues<ExpansionPack>();
+
+        // jurisdictionsCombo 建好後不再變動，鍵與名稱只取一次。
+        private readonly List<SonarJurisdiction> jurisdictionKeys;
+        private readonly string[] jurisdictionNames;
+
+        public SonarConfigWindow(SonarPlugin plugin, SonarPluginStub stub, IDalamudPluginInterface pluginInterface, SonarClient client, IDataManager data, DalamudVersionInfo dalamudVersion, AudioPlaybackEngine audio, SoundEngine sounds, FileDialogManager fileDialogs, IndexProvider index, IPluginLog logger) : base("Sonar Configuration")
         {
             this.Plugin = plugin;
             this.Stub = stub;
@@ -103,6 +110,9 @@ namespace SonarPlugin.GUI
             this.SizeCondition = ImGuiCond.FirstUseEver;
             this.BgAlpha = this.Plugin.Configuration.Opacity;
 
+            this.jurisdictionKeys = [.. this.jurisdictionsCombo.Keys];
+            this.jurisdictionNames = [.. this.jurisdictionsCombo.Values];
+
             // Chat Types for determining which chat log to send text messages into the chat window
             this._chatTypes = Enum.GetValues<XivChatType>()
                 .Select(t => t.GetDetails()?.FancyName ?? t.ToString())
@@ -126,6 +136,7 @@ namespace SonarPlugin.GUI
         private bool _server;
         public override void PreDraw()
         {
+            base.PreDraw();
             this.WindowName = $"{ConfigWindowLoc.WindowTitle.GetLocString()}###SonarConfigWindow";
         }
 
@@ -167,6 +178,12 @@ namespace SonarPlugin.GUI
         {
             using var child = ImRaii.Child("###generalTabScrollRegion");
             if (!child.Success) return;
+
+            SonarImGui.Checkbox($"{ConfigLoc.ConnectToServer.GetLocString()}###connectToSonarServer", this.Plugin.Configuration.ConnectToSonarServer, this.Plugin.SetServerConnection);
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip(ConfigLoc.ConnectToServerTooltip.GetLocString());
+            }
 
             SonarImGui.Checkbox($"{ConfigLoc.GlobalContribute.GetLocString()}###globalContribute", this.Client.Configuration.Contribute.Global, value =>
             {
@@ -317,7 +334,7 @@ namespace SonarPlugin.GUI
 
                     ImGui.Spacing();
 
-                    var cityStateValues = Enum.GetValues<CityState>().Select(cityState => (cityState, cityState.GetMeta())).ToArray();
+                    var cityStateValues = s_cityStateValues;
                     var cityStateStrings = cityStateValues.Select(ct => ct.Item2?.GetZone()?.ToString() ?? string.Empty).ToArray();
                     SonarImGui.Combo($"{ConfigWindowLoc.PreferredCityState.GetLocString()}###preferredCityState", (int)this.Plugin.Configuration.PreferredCityState, cityStateStrings, index =>
                     {
@@ -334,10 +351,10 @@ namespace SonarPlugin.GUI
                     using var indent = ImRaii.PushIndent();
                     using (var color = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow))
                     {
-                        ImGui.TextUnformatted("Localization is still in development!");
-                        ImGui.TextUnformatted("- Lots of strings are still not covered");
-                        ImGui.TextUnformatted("- Strings may change between releases");
-                        ImGui.TextUnformatted("Use localization at your own risk!");
+                        ImGui.TextUnformatted(Loc.Localize("LocalizationInDevelopment1", "Localization is still in development!"));
+                        ImGui.TextUnformatted(Loc.Localize("LocalizationInDevelopment2", "- Lots of strings are still not covered"));
+                        ImGui.TextUnformatted(Loc.Localize("LocalizationInDevelopment3", "- Strings may change between releases"));
+                        ImGui.TextUnformatted(Loc.Localize("LocalizationInDevelopment4", "Use localization at your own risk!"));
                     }
                     this._save |= SonarWidgets.Localization(this.Plugin.Configuration.Localization, this.FileDialogs);
                 }
@@ -439,12 +456,7 @@ namespace SonarPlugin.GUI
                 ImGui.SetTooltip(ConfigLoc.ContributeTooltip.GetLocString());
             }
 
-            if (!this.Client.Configuration.Contribute.Global)
-            {
-                ImGui.SameLine();
-                using var color = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudRed);
-                ImGui.TextUnformatted(ConfigLoc.ContributeGlobalDisabled.GetLocString());
-            }
+            this.DrawContributeStatus();
 
             SonarImGui.Checkbox($"{ConfigLoc.TrackAllHunts.GetLocString()}###trackAllHunts", this.Client.Configuration.HuntConfig.TrackAll, value =>
             {
@@ -561,8 +573,7 @@ namespace SonarPlugin.GUI
 
                 ImGui.Spacing();
 
-                var ranks = Enum.GetValues<HuntRank>();
-                foreach (var rank in ranks.AsEnumerable().Reverse())
+                foreach (var rank in s_huntRanksReversed)
                 {
                     if (rank == HuntRank.None || ((int)rank & 0x80) == 0x80) continue;
                     if (!this.Plugin.Configuration.AllSRankSettings && (rank == HuntRank.SS || rank == HuntRank.SSMinion)) continue;
@@ -664,17 +675,17 @@ namespace SonarPlugin.GUI
             ImGui.Text($"{this.rankStrings[rank]}");
             ImGui.SameLine(125.5f * ImGui.GetIO().FontGlobalScale);
 
-            int index = this.jurisdictionsCombo.Keys.ToList().IndexOf(this.Client.Configuration.HuntConfig.GetJurisdiction(ExpansionPack.ARealmReborn, rank));
-            if (ImGui.Combo($"##hunt{rank}", ref index, this.jurisdictionsCombo.Values.ToArray(), this.jurisdictionsCombo.Count))
+            int index = this.jurisdictionKeys.IndexOf(this.Client.Configuration.HuntConfig.GetJurisdiction(ExpansionPack.ARealmReborn, rank));
+            if (ImGui.Combo($"##hunt{rank}", ref index, this.jurisdictionNames, this.jurisdictionsCombo.Count))
             {
                 this._save = this._server = true;
                 foreach (var expansion in Enum.GetValues<ExpansionPack>())
                 {
-                    this.Client.Configuration.HuntConfig.SetJurisdiction(expansion, rank, this.jurisdictionsCombo.Keys.ToList()[index]);
+                    this.Client.Configuration.HuntConfig.SetJurisdiction(expansion, rank, this.jurisdictionKeys[index]);
                     if (!this.Plugin.Configuration.AllSRankSettings && (rank == HuntRank.S))
                     {
-                        this.Client.Configuration.HuntConfig.SetJurisdiction(expansion, HuntRank.SS, this.jurisdictionsCombo.Keys.ToList()[index]);
-                        this.Client.Configuration.HuntConfig.SetJurisdiction(expansion, HuntRank.SSMinion, this.jurisdictionsCombo.Keys.ToList()[index]);
+                        this.Client.Configuration.HuntConfig.SetJurisdiction(expansion, HuntRank.SS, this.jurisdictionKeys[index]);
+                        this.Client.Configuration.HuntConfig.SetJurisdiction(expansion, HuntRank.SSMinion, this.jurisdictionKeys[index]);
                     }
                 }
             }
@@ -684,7 +695,7 @@ namespace SonarPlugin.GUI
         {
             if (ImGui.TreeNodeEx($"##Rank{rank}", ImGuiTreeNodeFlags.CollapsingHeader, this.rankStrings[rank]))
             {
-                foreach (var expansion in Enum.GetValues<ExpansionPack>())
+                foreach (var expansion in s_expansionPacks)
                 {
                     if (expansion == ExpansionPack.Unknown) continue;
                     if (rank is HuntRank.SSMinion or HuntRank.SS && expansion <= ExpansionPack.Stormblood) continue;
@@ -692,18 +703,34 @@ namespace SonarPlugin.GUI
                     ImGui.Text(this.expansionStrings[expansion]);
                     ImGui.SameLine(125.0f * ImGui.GetIO().FontGlobalScale);
 
-                    int index = this.jurisdictionsCombo.Keys.ToList().IndexOf(this.Client.Configuration.HuntConfig.GetJurisdiction(expansion, rank));
-                    if (ImGui.Combo($"##hunt{expansion}{rank}", ref index, this.jurisdictionsCombo.Values.ToArray(), this.jurisdictionsCombo.Count))
+                    int index = this.jurisdictionKeys.IndexOf(this.Client.Configuration.HuntConfig.GetJurisdiction(expansion, rank));
+                    if (ImGui.Combo($"##hunt{expansion}{rank}", ref index, this.jurisdictionNames, this.jurisdictionsCombo.Count))
                     {
                         this._save = this._server = true;
-                        this.Client.Configuration.HuntConfig.SetJurisdiction(expansion, rank, this.jurisdictionsCombo.Keys.ToList()[index]);
+                        this.Client.Configuration.HuntConfig.SetJurisdiction(expansion, rank, this.jurisdictionKeys[index]);
                         if (!this.Plugin.Configuration.AllSRankSettings && (rank == HuntRank.S))
                         {
-                            this.Client.Configuration.HuntConfig.SetJurisdiction(expansion, HuntRank.SS, this.jurisdictionsCombo.Keys.ToList()[index]);
-                            this.Client.Configuration.HuntConfig.SetJurisdiction(expansion, HuntRank.SSMinion, this.jurisdictionsCombo.Keys.ToList()[index]);
+                            this.Client.Configuration.HuntConfig.SetJurisdiction(expansion, HuntRank.SS, this.jurisdictionKeys[index]);
+                            this.Client.Configuration.HuntConfig.SetJurisdiction(expansion, HuntRank.SSMinion, this.jurisdictionKeys[index]);
                         }
                     }
                 }
+            }
+        }
+
+        /// <summary>Same line as the contribute checkbox: why reports are not being shared.</summary>
+        private void DrawContributeStatus()
+        {
+            if (!this.Plugin.Configuration.ConnectToSonarServer)
+            {
+                ImGui.SameLine();
+                ImGui.TextDisabled(ConfigLoc.ServerDisabledStatus.GetLocString());
+            }
+            else if (!this.Client.Configuration.Contribute.Global)
+            {
+                ImGui.SameLine();
+                using var color = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudRed);
+                ImGui.TextUnformatted(ConfigLoc.ContributeGlobalDisabled.GetLocString());
             }
         }
 
@@ -722,12 +749,7 @@ namespace SonarPlugin.GUI
                 ImGui.SetTooltip(ConfigLoc.ContributeTooltip.GetLocString());
             }
 
-            if (!this.Client.Configuration.Contribute.Global)
-            {
-                ImGui.SameLine();
-                using var color = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudRed);
-                ImGui.TextUnformatted(ConfigLoc.ContributeGlobalDisabled.GetLocString());
-            }
+            this.DrawContributeStatus();
 
             SonarImGui.Checkbox($"{ConfigLoc.TrackAllFates.GetLocString()}###trackAllFates", this.Client.Configuration.FateConfig.TrackAll, value =>
             {
@@ -807,12 +829,12 @@ namespace SonarPlugin.GUI
                 ImGui.Indent();
 
                 ImGui.Text(Loc.Localize("DefaultReportJurisdiction", "Default Report Jurisdiction")); ImGui.SameLine();
-                int index = this.jurisdictionsCombo.Keys.ToList().IndexOf(this.Client.Configuration.FateConfig.GetDefaultJurisdiction());
+                int index = this.jurisdictionKeys.IndexOf(this.Client.Configuration.FateConfig.GetDefaultJurisdiction());
 
-                if (ImGui.Combo($"##fate_default", ref index, this.jurisdictionsCombo.Values.ToArray(), this.jurisdictionsCombo.Count))
+                if (ImGui.Combo($"##fate_default", ref index, this.jurisdictionNames, this.jurisdictionsCombo.Count))
                 {
                     this._save = this._server = true;
-                    this.Client.Configuration.FateConfig.SetDefaultJurisdiction(this.jurisdictionsCombo.Keys.ToList()[index]);
+                    this.Client.Configuration.FateConfig.SetDefaultJurisdiction(this.jurisdictionKeys[index]);
                 }
 
                 ImGui.Text(Loc.Localize("SearchText", "Search"));
@@ -956,13 +978,13 @@ namespace SonarPlugin.GUI
                             jurisdiction = SonarJurisdiction.Default;
                         }
 
-                        index = this.jurisdictionsCombo.Keys.ToList().IndexOf(jurisdiction);
-                        if (ImGui.Combo($"##fate_{currentFate.Id}_jurisdiction", ref index, this.jurisdictionsCombo.Values.ToArray(), this.jurisdictionsCombo.Count))
+                        index = this.jurisdictionKeys.IndexOf(jurisdiction);
+                        if (ImGui.Combo($"##fate_{currentFate.Id}_jurisdiction", ref index, this.jurisdictionNames, this.jurisdictionsCombo.Count))
                         {
                             this._save = this._server = true;
                             foreach (var fateId in currentFate.GroupFateIds)
                             {
-                                this.Client.Configuration.FateConfig.SetJurisdiction(fateId, this.jurisdictionsCombo.Keys.ToList()[index]);
+                                this.Client.Configuration.FateConfig.SetJurisdiction(fateId, this.jurisdictionKeys[index]);
                             }
                         }
 
@@ -994,7 +1016,7 @@ namespace SonarPlugin.GUI
                 ImGui.Text($"{this.Stub.PluginName} v{Assembly.GetExecutingAssembly().GetName().Version}");
                 ImGui.Text($"{Loc.Localize("AboutSonarBroughtBy", "Brought to you by the Sonar Team")}");
 
-                if (ImGui.Button("Sonar Support Discord##SonarDiscord"))
+                if (ImGui.Button($"{Loc.Localize("AboutSonarDiscordButton", "Sonar Support Discord")}##SonarDiscord"))
                 {
                     this._tasker.AddTask(Task.Run(() => { ShellExecute("https://discord.gg/K7y24Rr"); }));
                 }
@@ -1002,7 +1024,7 @@ namespace SonarPlugin.GUI
 
                 ImGui.SameLine();
 
-                if (ImGui.Button("Sonar Patreon##SonarPatreon"))
+                if (ImGui.Button($"{Loc.Localize("AboutSonarPatreonButton", "Sonar Patreon")}##SonarPatreon"))
                 {
                     this._tasker.AddTask(Task.Run(() => { ShellExecute("https://www.patreon.com/ffxivsonar"); }));
                 }
@@ -1014,7 +1036,11 @@ namespace SonarPlugin.GUI
                 ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
 
                 ImGui.Text($"{Loc.Localize("SonarStatus", "Sonar Status")}: "); ImGui.SameLine();
-                if (this.Client.Connection.IsConnected)
+                if (!this.Plugin.Configuration.ConnectToSonarServer)
+                {
+                    ImGui.TextDisabled(ConfigLoc.ServerDisabledStatus.GetLocString());
+                }
+                else if (this.Client.Connection.IsConnected)
                 {
                     ImGui.PushStyleColor(ImGuiCol.Text, 0xff00ff33);
                     ImGui.Text($"{Loc.Localize("SonarConnected", "Connected")}");
@@ -1029,12 +1055,15 @@ namespace SonarPlugin.GUI
                     if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{Loc.Localize("SonarDisconnectedTooltip", "Sonar will keep trying to reconnect automatically")}");
                 }
 
-                ImGui.SameLine();
-                if (ImGui.Button($"{Loc.Localize("SonarReconnect", "Reconnect")}"))
+                if (this.Plugin.Configuration.ConnectToSonarServer)
                 {
-                    this.Client.Connection.Reconnect();
+                    ImGui.SameLine();
+                    if (ImGui.Button($"{Loc.Localize("SonarReconnect", "Reconnect")}"))
+                    {
+                        this.Client.Connection.Reconnect();
+                    }
+                    if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{Loc.Localize("SonarReconnectTooltip", "Signal Sonar to attempt reconnecting to server")}");
                 }
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{Loc.Localize("SonarReconnectTooltip", "Signal Sonar to attempt reconnecting to server")}");
             }
 
             ImGui.EndChild(); // End scroll region
@@ -1045,41 +1074,41 @@ namespace SonarPlugin.GUI
         {
             ImGui.BeginChild("##debugTabScrollRegion");
             {
-                ImGui.Text("Version Information");
+                ImGui.Text(Loc.Localize("DebugVersionInformation", "Version Information"));
                 ImGui.BeginChild("##debugVersionInfo", new Vector2(0, 100 * ImGui.GetIO().FontGlobalScale), true, ImGuiWindowFlags.None);
                 {
                     ImGui.Text($"{this.Stub.PluginName} v{Assembly.GetExecutingAssembly().GetName().Version}");
                     ImGui.Text($"Dalamud {this.DalamudVersion.Version} (Git: {this.DalamudVersion.GitHash})");
                     ImGui.Text($"FFXIV {VersionUtils.GetGameVersion(this.Data)}");
 
-                    ImGui.Text($"Client Hash: ");
+                    ImGui.Text($"{Loc.Localize("DebugClientHash", "Client Hash")}: ");
                     ImGui.SameLine();
                     if (this._showClientHash)
                     {
-                        ImGui.Text($"{this.Client.ClientHash ?? "Unknown"}");
+                        ImGui.Text($"{this.Client.ClientHash ?? Loc.Localize("UnknownText", "Unknown")}");
                         ImGui.SameLine();
                     }
 
-                    if (ImGui.Button($"{(this._showClientHash ? "Hide" : "Show")}")) this._showClientHash = !this._showClientHash;
+                    if (ImGui.Button($"{(this._showClientHash ? Loc.Localize("DebugHide", "Hide") : Loc.Localize("DebugShow", "Show"))}")) this._showClientHash = !this._showClientHash;
                     ImGui.SameLine();
-                    if (ImGui.Button($"Copy")) ImGui.SetClipboardText(this.Client.ClientHash);
+                    if (ImGui.Button($"{Loc.Localize("CopyButton", "Copy")}")) ImGui.SetClipboardText(this.Client.ClientHash);
                 }
                 ImGui.EndChild(); // debugVersionInfo
 
                 ImGui.Spacing();
 
-                ImGui.Text("Player Tracker");
+                ImGui.Text(Loc.Localize("DebugPlayerTracker", "Player Tracker"));
                 ImGui.BeginChild("##DebugPlayerTracker", new Vector2(0, 35 * ImGui.GetIO().FontGlobalScale), true, ImGuiWindowFlags.None);
                 {
-                    ImGui.Text($"Zone: {this.Client.Meta.PlayerPosition}");
+                    ImGui.Text($"{Loc.Localize("DebugZone", "Zone")}: {this.Client.Meta.PlayerPosition}");
                 }
                 ImGui.EndChild(); // debugPlayerTracker
                 ImGui.Spacing();
 
-                ImGui.Text("Hunts Tracker");
+                ImGui.Text(Loc.Localize("DebugHuntsTracker", "Hunts Tracker"));
                 ImGui.BeginChild("##DebugHuntTracker", new Vector2(0, 80 * ImGui.GetIO().FontGlobalScale), true, ImGuiWindowFlags.None);
                 {
-                    ImGui.Text($"Count: {this.Client.Trackers.Hunts.Data.Count} | Index: {this.Client.Trackers.Hunts.Data.IndexCount}");
+                    ImGui.Text($"{Loc.Localize("DebugCount", "Count")}: {this.Client.Trackers.Hunts.Data.Count} | {Loc.Localize("DebugIndex", "Index")}: {this.Client.Trackers.Hunts.Data.IndexCount}");
 
                     ImGui.Spacing();
                     ImGui.Separator();
@@ -1087,13 +1116,13 @@ namespace SonarPlugin.GUI
 
                     if (this._debugHuntTask.IsCompleted)
                     {
-                        if (ImGui.Button("Clear"))
+                        if (ImGui.Button(Loc.Localize("DebugClear", "Clear")))
                         {
                             this.Client.Trackers.Hunts.Data.Clear();
                             this.Logger.Information("Hunts Tracker Reset");
                         }
                         ImGui.SameLine();
-                        if (ImGui.Button("Check"))
+                        if (ImGui.Button(Loc.Localize("DebugCheck", "Check")))
                         {
                             this._debugHuntTask = Task.Run(() =>
                             {
@@ -1109,9 +1138,9 @@ namespace SonarPlugin.GUI
                                 }
                             });
                         }
-                        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Perform a consistency check of the index\nOutput will be at /xllog");
+                        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Loc.Localize("DebugCheckTooltip", "Perform a consistency check of the index\nOutput will be at /xllog"));
                         ImGui.SameLine();
-                        if (ImGui.Button("Rebuild"))
+                        if (ImGui.Button(Loc.Localize("DebugRebuild", "Rebuild")))
                         {
                             this._debugHuntTask = Task.Run(() =>
                             {
@@ -1120,20 +1149,20 @@ namespace SonarPlugin.GUI
                                 this.Logger.Information("Hunt index debug rebuild complete");
                             });
                         }
-                        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Rebuild index\nOutput will be at /xllog\n\nWarning: You may experience stuttering");
+                        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Loc.Localize("DebugRebuildTooltip", "Rebuild index\nOutput will be at /xllog\n\nWarning: You may experience stuttering"));
                     }
                     else
                     {
-                        ImGui.Text("Busy");
+                        ImGui.Text(Loc.Localize("DebugBusy", "Busy"));
                     }
                 }
                 ImGui.EndChild(); // debugHuntTracker
                 ImGui.Spacing();
 
-                ImGui.Text("Fates Tracker");
+                ImGui.Text(Loc.Localize("DebugFatesTracker", "Fates Tracker"));
                 ImGui.BeginChild("##DebugFateTracker", new Vector2(0, 80 * ImGui.GetIO().FontGlobalScale), true, ImGuiWindowFlags.None);
                 {
-                    ImGui.Text($"Count: {this.Client.Trackers.Fates.Data.Count} | Index: {this.Client.Trackers.Fates.Data.IndexCount}");
+                    ImGui.Text($"{Loc.Localize("DebugCount", "Count")}: {this.Client.Trackers.Fates.Data.Count} | {Loc.Localize("DebugIndex", "Index")}: {this.Client.Trackers.Fates.Data.IndexCount}");
 
                     ImGui.Spacing();
                     ImGui.Separator();
@@ -1141,13 +1170,13 @@ namespace SonarPlugin.GUI
 
                     if (this._debugFateTask.IsCompleted)
                     {
-                        if (ImGui.Button("Clear"))
+                        if (ImGui.Button(Loc.Localize("DebugClear", "Clear")))
                         {
                             this.Client.Trackers.Fates.Data.Clear();
                             this.Logger.Information("Fates Tracker Reset");
                         }
                         ImGui.SameLine();
-                        if (ImGui.Button("Check"))
+                        if (ImGui.Button(Loc.Localize("DebugCheck", "Check")))
                         {
                             this._debugFateTask = Task.Run(() =>
                             {
@@ -1163,9 +1192,9 @@ namespace SonarPlugin.GUI
                                 }
                             });
                         }
-                        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Perform a consistency check of the index\nOutput will be at /xllog");
+                        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Loc.Localize("DebugCheckTooltip", "Perform a consistency check of the index\nOutput will be at /xllog"));
                         ImGui.SameLine();
-                        if (ImGui.Button("Rebuild"))
+                        if (ImGui.Button(Loc.Localize("DebugRebuild", "Rebuild")))
                         {
                             this._debugFateTask = Task.Run(() =>
                             {
@@ -1174,17 +1203,17 @@ namespace SonarPlugin.GUI
                                 this.Logger.Information("Fate index debug rebuild complete");
                             });
                         }
-                        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Rebuild index\nOutput will be at /xllog\n\nWarning: You may experience stuttering");
+                        if (ImGui.IsItemHovered()) ImGui.SetTooltip(Loc.Localize("DebugRebuildTooltip", "Rebuild index\nOutput will be at /xllog\n\nWarning: You may experience stuttering"));
                     }
                     else
                     {
-                        ImGui.Text("Busy");
+                        ImGui.Text(Loc.Localize("DebugBusy", "Busy"));
                     }
                 }
                 ImGui.EndChild(); // debugFateTracker
                 ImGui.Spacing();
 
-                if (ImGui.Button("Request Relay Data"))
+                if (ImGui.Button(Loc.Localize("DebugRequestRelayData", "Request Relay Data")))
                 {
                     this.Plugin.Configuration.SonarConfig.HuntConfig.TrackAll = true;
                     this.Plugin.Configuration.SonarConfig.FateConfig.TrackAll = true;
@@ -1193,7 +1222,7 @@ namespace SonarPlugin.GUI
                 }
                 if (ImGui.IsItemHovered())
                 {
-                    ImGui.SetTooltip("Request all relay information to be received.\nTrack All options will automatically be enabled for both Hunts and Fates.\nThis can only be done once.\n\nWarning: You'll receive everything the Sonar server knows!\nThis is currently under testing.");
+                    ImGui.SetTooltip(Loc.Localize("DebugRequestRelayDataTooltip", "Request all relay information to be received.\nTrack All options will automatically be enabled for both Hunts and Fates.\nThis can only be done once.\n\nWarning: You'll receive everything the Sonar server knows!\nThis is currently under testing."));
                 }
             }
 

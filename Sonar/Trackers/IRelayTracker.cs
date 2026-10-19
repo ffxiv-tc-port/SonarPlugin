@@ -14,6 +14,11 @@ namespace Sonar.Trackers
         /// <returns>Successful or sent to server</returns>
         public bool FeedRelay(T relay);
 
+        /// <summary>Same as <see cref="FeedRelay(T)"/> for a relay the caller reuses after this returns.</summary>
+        /// <remarks>Whatever the tracker keeps is a copy taken during the call; <paramref name="relay"/> itself is never stored.</remarks>
+        /// <returns>Successful or sent to server</returns>
+        public bool FeedTransientRelay(T relay) => this.FeedRelay((T)relay.Clone());
+
         /// <summary>Feeds a relay into this tracker</summary>
         /// <returns>Successful or sent to server</returns>
         internal bool FeedRelayInternal(T relay);

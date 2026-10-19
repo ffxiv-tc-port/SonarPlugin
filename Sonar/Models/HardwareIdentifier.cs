@@ -4,10 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DeviceId;
-using DeviceId.Formatters;
-using DeviceId.Encoders;
-using DeviceId.Components;
 using System.Security.Cryptography;
 using Sonar.Messages;
 

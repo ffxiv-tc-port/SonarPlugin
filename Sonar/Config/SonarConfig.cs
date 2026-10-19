@@ -33,7 +33,7 @@ namespace Sonar.Config
 #if DEBUG
         public SonarLogLevel LogLevel { get; set; } = SonarLogLevel.Information; //Info
 #else
-        public SonarLogLevel LogLevel { get; set; } = SonarLogLevel.Warning; //Warn
+        public SonarLogLevel LogLevel { get; set; } = SonarLogLevel.Information; //Info
 #endif
 
         /// <summary>Hunt reporting configuration</summary>

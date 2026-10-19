@@ -1,6 +1,7 @@
 using AG;
 using AG.EnumLocalization;
 using Sonar;
+using SonarPlugin.Config;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -21,6 +22,14 @@ namespace SonarPlugin.Utility
     {
         private static readonly Regex s_resourceNameRegex = new(@"^.*\.lang\.json$", RegexOptions.ExplicitCapture | RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private static readonly ConcurrentDictionary<Assembly, ImmutableArray<string>> s_languages = new();
+
+        /// <summary>TC fork: manifest resource name of the zh-TW language file embedded in the plugin assembly.</summary>
+        /// <remarks>An <see cref="EnumLoc"/> language code IS the manifest resource name the language was loaded
+        /// under (see <see cref="SetupAssemblyCore"/>), so this doubles as the language code.</remarks>
+        public const string TcPluginLanguage = "SonarPlugin.Resources.tc.plugin.lang.json";
+
+        /// <summary>TC fork: manifest resource name of the zh-TW language file embedded in the Sonar assembly.</summary>
+        public const string TcSonarLanguage = "Sonar.Resources.tc.sonar.lang.json";
 
         /// <summary>RunSetup localization.</summary>
         /// <param name="threaded">Launch a background task to perform the setup.</param>
@@ -46,6 +55,33 @@ namespace SonarPlugin.Utility
                     Debugger.Break();
                     GC.KeepAlive(ex);
                 }
+            }
+        }
+
+        /// <summary>TC fork: apply the embedded zh-TW CheapLoc resource when the Traditional Chinese preset is
+        /// active, otherwise fall back to upstream English. CheapLoc is a separate system from EnumLoc (it has no
+        /// language selection of its own), so it is driven directly off the plugin's <see cref="LocalizationPreset"/>.</summary>
+        public static void ApplyCheapLoc(LocalizationPreset preset)
+        {
+            try
+            {
+                if (preset == LocalizationPreset.ChineseTraditional)
+                {
+                    var assembly = typeof(SonarPlugin).Assembly;
+                    using var stream = assembly.GetManifestResourceStream("SonarPlugin.Resources.tc.cheaploc.json");
+                    ThrowHelper.ThrowIf(stream is null, static () => new NullReferenceException("Opened stream was null."));
+                    using var reader = new StreamReader(stream!, Encoding.UTF8);
+                    CheapLoc.Loc.Setup(reader.ReadToEnd());
+                }
+                else
+                {
+                    CheapLoc.Loc.SetupWithFallbacks();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debugger.Break();
+                GC.KeepAlive(ex);
             }
         }
 

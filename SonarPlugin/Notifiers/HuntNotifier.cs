@@ -38,12 +38,12 @@ namespace SonarPlugin.Notifiers
         private IClientState ClientState { get; }
         private SonarClient Client { get; }
         private IRelayTracker<HuntRelay> Tracker { get; }
-        private IChatGui Chat { get; }
+        private ChatQueue Chat { get; }
         private SoundEngine Sounds { get; }
         private SonarFramework Framework { get; }
         private IPluginLog Logger { get; }
 
-        public HuntNotifier(SonarPlugin plugin, IClientState clientState, SonarClient client, RelayTrackerViews views, IChatGui chat, SoundEngine sounds, SonarFramework framework, IPluginLog logger)
+        public HuntNotifier(SonarPlugin plugin, IClientState clientState, SonarClient client, RelayTrackerViews views, ChatQueue chat, SoundEngine sounds, SonarFramework framework, IPluginLog logger)
         {
             this.Plugin = plugin;
             this.ClientState = clientState;
@@ -96,12 +96,17 @@ namespace SonarPlugin.Notifiers
             if (relay.IsDead()) builder.AddText(" was just killed");
             if (this.Plugin.Configuration.EnableGameChatItalicFont) builder.AddItalicsOff();
 
-            this.Chat.Print(new()
+            // This runs on the tracker's background task and on the socket receive loop, and
+            // IChatGui may only be used from the framework thread, so the line goes through the
+            // queue that ChatQueue drains there. Queued rather than hopped per line so a burst
+            // of reports keeps its order.
+            var entry = new XivChatEntry
             {
                 Type = type,
                 Name = "Sonar",
                 Message = builder.Build()
-            });
+            };
+            this.Chat.Print(entry);
         }
 
         public bool CheckSSMinionSpawn(RelayState<HuntRelay> state)

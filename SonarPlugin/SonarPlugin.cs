@@ -1,10 +1,11 @@
-using CheapLoc;
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.Text;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using DryIocAttributes;
 using Sonar;
+using Sonar.Enums;
 using Sonar.Extensions;
 using Sonar.Logging;
 using SonarPlugin.Config;
@@ -23,11 +24,11 @@ namespace SonarPlugin
     {
         private IDalamudPluginInterface PluginInterface { get; }
         private SonarClient Client { get; }
-        private IChatGui Chat { get; }
+        private ChatQueue Chat { get; }
         private AudioPlaybackEngine Audio { get; }
         private IPluginLog Logger { get; }
 
-        public SonarPlugin(IDalamudPluginInterface pluginInterface, SonarClient client, IChatGui chat, AudioPlaybackEngine audio, IPluginLog logger)
+        public SonarPlugin(IDalamudPluginInterface pluginInterface, SonarClient client, ChatQueue chat, AudioPlaybackEngine audio, IPluginLog logger)
         {
             this.PluginInterface = pluginInterface;
             this.Client = client;
@@ -47,7 +48,49 @@ namespace SonarPlugin
 
             this.Logger.Info("Setting up localization");
             EnumLocUtils.Setup(this.Configuration.Localization.DebugFallbacks);
-            CheapLoc.Loc.SetupWithFallbacks();
+
+            // TC fork: default new installs to the Traditional Chinese preset once; users may change language afterwards.
+            if (!this.Configuration.TcLanguageDefaultApplied)
+            {
+                this.Logger.Info("Applying Traditional Chinese language default (TC fork, one time)");
+                this.Configuration.TcLanguageDefaultApplied = true;
+                // A brand new install lands on the full preset here, so the EnumLoc migration below is already satisfied.
+                this.Configuration.TcEnumLocMigrationApplied = true;
+                this.Configuration.Localization.Preset = LocalizationPreset.ChineseTraditional; // also applies CheapLoc, see LocalizationConfig.SetPresetCore
+                this.SaveConfiguration();
+            }
+            else if (!this.Configuration.TcEnumLocMigrationApplied)
+            {
+                // TC fork: one-time migration for configs written before the zh-TW AG.EnumLocalization language files
+                // existed, which stored the Traditional Chinese preset as (ChineseTraditional, null, null) and so stayed on
+                // the English EnumLoc fallback. Only that exact old-default shape is upgraded, so a user who has since chosen a
+                // different language (or a different Db) is never overridden. The flag is set first so the migration never
+                // repeats, and the whole thing is guarded so a failure fails safe (stays on the current strings, no crash).
+                this.Configuration.TcEnumLocMigrationApplied = true;
+                try
+                {
+                    var loc = this.Configuration.Localization;
+                    if (loc.Db == SonarLanguage.ChineseTraditional && loc.Plugin is null && loc.Sonar is null)
+                    {
+                        this.Logger.Information("Migrating existing Traditional Chinese config to the zh-TW EnumLoc language files (TC fork, one time)");
+                        loc.Preset = LocalizationPreset.ChineseTraditional; // sets Plugin/Sonar language files + applies CheapLoc, see LocalizationConfig.SetPresetCore
+                    }
+                    else
+                    {
+                        // User already chose a language (or a non-default Db); leave their selection alone.
+                        EnumLocUtils.ApplyCheapLoc(loc.Preset);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    this.Logger.Warning(ex, "zh-TW EnumLoc migration failed; keeping current language (TC fork)");
+                }
+                this.SaveConfiguration();
+            }
+            else
+            {
+                EnumLocUtils.ApplyCheapLoc(this.Configuration.Localization.Preset);
+            }
 
             this.Logger.Info("SonarPlugin Resources:");
             foreach (var resourceName in typeof(SonarPlugin).Assembly.GetManifestResourceNames())
@@ -69,18 +112,35 @@ namespace SonarPlugin
             // Start Sonar.NET client
             this.Client.ServerMessage += this.Events_OnSonarMessage;
             this.Client.LogMessage += this.ClientLogHandler;
-            this.Client.Start();
+            var connect = this.Configuration.ConnectToSonarServer;
+            this.Logger.Information($"Sonar server connection setting: {(connect ? "ON, connecting" : "OFF, local mode only (nothing is sent)")}");
+            if (connect) this.Client.Start();
+        }
+
+        /// <summary>Applies and saves the server connection master switch. Safe to call from the UI thread.</summary>
+        public void SetServerConnection(bool enabled)
+        {
+            this.Configuration.ConnectToSonarServer = enabled;
+            this.SaveConfiguration();
+            if (enabled) this.Client.Start();
+            else this.Client.Stop();
+            this.Logger.Information($"Sonar server connection turned {(enabled ? "ON from settings, connecting" : "OFF from settings, disconnected")}");
         }
 
         private void Events_OnSonarMessage(SonarClient source, string? message)
         {
             if (message is null) return;
-            this.Chat.Print(new()
+            // Server messages arrive on the socket receive loop, and IChatGui may only be used
+            // from the framework thread, so the line goes through the queue that ChatQueue
+            // drains there. Queued rather than hopped per line so consecutive messages keep
+            // their order.
+            var entry = new XivChatEntry
             {
                 Type = this.Configuration.HuntOutputChannel,
                 Name = "Sonar",
                 Message = message
-            });
+            };
+            this.Chat.Print(entry);
             this.Logger.Information("Sonar Message Received: {message}");
         }
 
@@ -106,6 +166,10 @@ namespace SonarPlugin
                 {
                     this.SaveConfiguration(true);
                 }
+
+                // SonarConfig.ReadFrom only writes the stored value; the gate that actually
+                // filters messages lives in SonarClient's logger and is reachable only here.
+                this.Client.LogLevel = this.Client.Configuration.LogLevel;
             }
             catch (Exception ex)
             {

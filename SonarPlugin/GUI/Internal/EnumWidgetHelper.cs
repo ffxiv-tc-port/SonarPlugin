@@ -28,6 +28,8 @@ namespace SonarPlugin.GUI.Internal
         {
             if (updateStrings) UpdateStrings(langCode);
             if (!s_indexes.TryGetValue(value, out var index)) index = -1;
+            // Dalamud.Bindings.ImGui's Combo(label, ref current, ReadOnlySpan<string> items, popupMaxHeightInItems)
+            // derives the item count from the span itself; the last argument is the popup height in items, not a count.
             var result = ImGui.Combo(label, ref index, s_strings!, max_height);
             if (result) value = s_values[index];
             return result;

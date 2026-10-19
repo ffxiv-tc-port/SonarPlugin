@@ -40,5 +40,14 @@ namespace SonarPlugin.Localization
         [EnumLoc(Fallback = "Receive Jurisdiction")]
         ReceiveJurisdiction,
 
+        [EnumLoc("Server.Connect", Fallback = "Connect to Sonar server (receive and share hunt / FATE reports)")]
+        ConnectToServer,
+
+        [EnumLoc("Server.ConnectTooltip", Fallback = "On: connects to the Sonar server and receives reports from other Sonar users. While connected Sonar sends:\n- your character name, home world and a hash of your character ID\n- the world, zone and instance you are in, and your position\n- a hashed hardware identifier and the client ID the server assigned to this install\n- version info (Sonar, plugin, game, Dalamud, operating system) and your contribute settings\n- hunts and FATEs you detect (position, HP, nearby player count), only while contributing is on\nThe support window only sends what you type when you submit it yourself.\nOff: nothing is sent; you only see the hunts and FATEs your own game detects.")]
+        ConnectToServerTooltip,
+
+        [EnumLoc("Server.DisabledStatus", Fallback = "Not connected (turned off in settings)")]
+        ServerDisabledStatus,
+
     }
 }

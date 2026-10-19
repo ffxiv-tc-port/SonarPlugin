@@ -15,16 +15,13 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\Db.data" />
     <EmbeddedResource Include="Resources\en.sonar.lang.json" />
+    <!-- TC fork: zh-TW AG.EnumLocalization language file, selected by LocalizationPreset.ChineseTraditional -->
+    <EmbeddedResource Include="Resources\tc.sonar.lang.json" />
     <EmbeddedResource Include="Resources\Urls.data" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="AG.NonBlocking" Version="2.1.1" />
-    <PackageReference Include="DeviceId" Version="6.11.0" />
-    <PackageReference Include="DeviceId.Linux" Version="6.11.0" />
-    <PackageReference Include="DeviceId.Mac" Version="6.11.0" />
-    <PackageReference Include="DeviceId.Windows" Version="6.11.0" />
-    <PackageReference Include="DeviceId.Windows.Wmi" Version="6.11.0" />
     <PackageReference Include="InterlockedUtils" Version="1.0.1" />
     <PackageReference Include="MessagePack" Version="3.1.6" />
     <PackageReference Include="MessagePack.Annotations" Version="3.1.6" />

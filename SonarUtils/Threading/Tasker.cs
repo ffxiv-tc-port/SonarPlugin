@@ -121,7 +121,9 @@ namespace SonarUtils.Threading
         public void Dispose()
         {
             var tasks = this._tasks.ToArray();
-            try { Task.WaitAll(tasks); } catch { /* Swallow */ }
+            // 呼叫端都是主執行緒卸載時處置的單例,排進來的工作包含「開啟瀏覽器」這種
+            // 冷啟動可能要好幾秒的外部程序;無上限等待會讓遊戲在卸載外掛時直接卡死。
+            try { Task.WaitAll(tasks, TimeSpan.FromSeconds(5)); } catch { /* Swallow */ }
         }
         #endregion
 

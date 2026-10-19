@@ -14,7 +14,7 @@ namespace Sonar.Config
     public sealed class SonarContributeConfig : ISonarMessage
     {
         private SonarClient? _client;
-        private bool _global = true;
+        private bool _global; // Off by default: sharing reports is opt-in
         private SonarJurisdiction _jurisdiction = SonarJurisdiction.Datacenter;
 
         /// <summary>Contains contribution config for individual <see cref="RelayType"/>s.</summary>
@@ -87,7 +87,7 @@ namespace Sonar.Config
         public void Reset()
         {
             this.Disabled.Clear();
-            this.Global = true;
+            this.Global = false;
         }
     }
 }

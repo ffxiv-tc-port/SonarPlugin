@@ -47,7 +47,14 @@ namespace Sonar
         internal ClientModifiers Modifiers = ClientModifiers.Defaults;
 
         private ClientIdentifier ClientIdentifier { get; set; }
-        private HardwareIdentifier HardwareIdentifier { get; set; } = IdentifierUtils.GetHardwareIdentifier();
+
+        // ClientHello never carries a hardware identifier. A server that refuses such clients can only be
+        // seen as sessions dropping right after the hello, so warn once per load after a few in a row.
+        private const long ShortSessionMs = 15_000;
+        private const int ShortSessionWarnCount = 3;
+        private long _helloSentTicks; // Interlocked; 0 = no ClientHello on the active connection
+        private int _shortSessions; // Interlocked
+        private int _shortSessionWarned; // Interlocked
 
         private SonarVersion versionInfo = new();
         /// <summary>
@@ -95,15 +102,19 @@ namespace Sonar
             this.StartInfo = startInfo ?? new();
             this.StartInfo.Initialize();
 
+            // Ahead of the container: SonarConnectionManager logs from its own constructor and
+            // hands this logger to SonarUrlManager, whose background task outlives construction.
+            this.Logger = new SonarLoggerContext(this.baseLogger, "Sonar");
+
             this.Connection = this._container.Resolve<SonarConnectionManager>();
             this.Connection.MessageReceived += this.ReceiveHandler;
             this.Connection.TextReceived += this.TextHandler;
             this.Connection.ConnectedInternal += this.ReadyHandler;
+            this.Connection.DisconnectedInternal += this.DisconnectedHandler;
 
             this.ClientIdentifier = IdentifierUtils.GetClientIdentifier(this.StartInfo);
 
             this.baseLogger.LogMessage += this.LogHandler;
-            this.Logger = new SonarLoggerContext(this.baseLogger, "Sonar");
             this.serverLogger = new SonarLoggerContext(this.baseLogger, "Server");
 
             this._ticker = new(this);
@@ -132,10 +143,17 @@ namespace Sonar
             this._container.RegisterMany(Made.Of(r => ServiceInfo.Of<RelayTrackers>(), t => t.Utils), Reuse.Singleton, setup: Setup.With(preventDisposal: true));
         }
 
-        /// <summary>Starts the <see cref="SonarClient"/>. Calling this method multiple times has no effect and returns <see cref="false"/></summary>
+        /// <summary>Starts connecting to the Sonar server. Calling this method while started has no effect and returns <see cref="false"/></summary>
+        /// <remarks>Until this is called nothing is sent anywhere; trackers work locally from the embedded database.</remarks>
         public bool Start()
         {
             return this.Connection.Start();
+        }
+
+        /// <summary>Disconnects from the Sonar server and stops reconnecting until <see cref="Start"/> is called again.</summary>
+        public bool Stop()
+        {
+            return this.Connection.Stop();
         }
 
         /// <summary>Request all relay data from the Sonar Server</summary>
@@ -158,7 +176,7 @@ namespace Sonar
                         ClientId = this.ClientIdentifier.ClientId,
                         ClientSecret = this.ClientIdentifier.ClientSecret,
 
-                        HardwareIdentifier = this.HardwareIdentifier.Identifier,
+                        HardwareIdentifier = null, // Deliberately not sent: no machine UUID leaves this machine
                         Version = this.VersionInfo,
                         SecretMetaBytes = new Dictionary<string, ImmutableArray<byte>?>()
                         {
@@ -174,10 +192,28 @@ namespace Sonar
                     Database.GetDbInfo(),
                 };
                 this.Connection.SendIfConnected(messages);
+                Interlocked.Exchange(ref this._helloSentTicks, Math.Max(1, System.Environment.TickCount64));
             }
             finally
             {
                 this.Meta._lock.Exit();
+            }
+        }
+
+        private void DisconnectedHandler(SonarConnectionManager manager, ISonarSocket socket)
+        {
+            var helloTicks = Interlocked.Exchange(ref this._helloSentTicks, 0);
+            if (helloTicks == 0 || !manager.IsStarted) return; // Stop() is the user's choice, not a refusal
+            var lastedMs = System.Environment.TickCount64 - helloTicks;
+            if (lastedMs >= ShortSessionMs)
+            {
+                Interlocked.Exchange(ref this._shortSessions, 0);
+                return;
+            }
+            var count = Interlocked.Increment(ref this._shortSessions);
+            if (count >= ShortSessionWarnCount && Interlocked.Exchange(ref this._shortSessionWarned, 1) == 0)
+            {
+                this.LogWarning($"Sonar 連線連續 {count} 次在送出識別訊息後 {ShortSessionMs / 1000} 秒內就斷開（本插件不送硬體識別碼與作業系統版本）：可能是伺服器拒絕不帶硬體識別碼或作業系統版本的連線，其他玩家回報的狩獵怪與 F.A.T.E. 會收不到；本次載入只提示一次");
             }
         }
 
@@ -318,8 +354,10 @@ namespace Sonar
 
             GC.SuppressFinalize(this);
         }
+        // Dalamud 會在主執行緒上呼叫這個 Dispose,所以等待必須有界(與底下 PingService、SonarSocketSignalR 的
+        // 5 秒上限一致):無上限等待時任何一層卡住都會讓整個遊戲在卸載插件時凍結。
         [SuppressMessage("Usage", "CA1816", Justification = "Called in DisposeAsync")]
-        public void Dispose() => this.DisposeAsync().AsTask().Wait();
+        public void Dispose() => this.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
         ~SonarClient()
         {
             ClientFinalized();

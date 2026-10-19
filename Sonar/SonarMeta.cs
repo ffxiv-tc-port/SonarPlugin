@@ -5,6 +5,7 @@ using System.Threading;
 using static Sonar.SonarConstants;
 using Sonar.Extensions;
 using System.Collections.Immutable;
+using Sonar.Numerics;
 
 namespace Sonar
 {
@@ -86,10 +87,39 @@ namespace Sonar
         public (bool PlaceUpdated, bool PositionUpdated) UpdatePlayerPosition(PlayerPosition? playerPosition)
         {
             if (playerPosition is null) return (false, false);
-            var placeUpdated = this.PlayerPosition is null || !playerPosition.WorldZoneInstanceEquals(this.PlayerPosition);
-            var positionUpdated = placeUpdated || playerPosition.Coords.Delta(this.PlayerPosition!.Coords).LengthSquared() >= RoughDistanceSquared;
+            var (placeUpdated, positionUpdated) = this.GetPlayerPositionChange(playerPosition.WorldId, playerPosition.ZoneId, playerPosition.InstanceId, playerPosition.Coords);
             if (!placeUpdated && !positionUpdated) return (false, false);
 
+            this.CommitPlayerPosition(playerPosition, placeUpdated, positionUpdated);
+            return (placeUpdated, positionUpdated);
+        }
+
+        /// <summary>Same as <see cref="UpdatePlayerPosition(Models.PlayerPosition?)"/>, but only allocates the <see cref="Models.PlayerPosition"/> when it is going to be stored.</summary>
+        /// <param name="playerPosition">The stored position when anything was updated; otherwise <see langword="null"/>.</param>
+        public (bool PlaceUpdated, bool PositionUpdated) UpdatePlayerPosition(uint worldId, uint zoneId, uint instanceId, SonarVector3 coords, out PlayerPosition? playerPosition)
+        {
+            var (placeUpdated, positionUpdated) = this.GetPlayerPositionChange(worldId, zoneId, instanceId, coords);
+            if (!placeUpdated && !positionUpdated)
+            {
+                playerPosition = null;
+                return (false, false);
+            }
+
+            playerPosition = new PlayerPosition() { WorldId = worldId, ZoneId = zoneId, InstanceId = instanceId, Coords = coords };
+            this.CommitPlayerPosition(playerPosition, placeUpdated, positionUpdated);
+            return (placeUpdated, positionUpdated);
+        }
+
+        private (bool PlaceUpdated, bool PositionUpdated) GetPlayerPositionChange(uint worldId, uint zoneId, uint instanceId, SonarVector3 coords)
+        {
+            var current = this.PlayerPosition;
+            var placeUpdated = current is null || !current.WorldZoneInstanceEquals(worldId, zoneId, instanceId);
+            var positionUpdated = placeUpdated || coords.Delta(current!.Coords).LengthSquared() >= RoughDistanceSquared;
+            return (placeUpdated, positionUpdated);
+        }
+
+        private void CommitPlayerPosition(PlayerPosition playerPosition, bool placeUpdated, bool positionUpdated)
+        {
             this.PlayerPosition = playerPosition;
             this.Client.Connection.SendIfConnected(playerPosition);
 
@@ -122,8 +152,6 @@ namespace Sonar
                     }
                 }
             }
-
-            return (placeUpdated, positionUpdated);
         }
 
         public void RequestVerification()

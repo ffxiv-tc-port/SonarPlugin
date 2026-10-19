@@ -176,7 +176,7 @@ namespace SonarPlugin.GUI.Internal
             return match.Success ? match.Groups["prefix"].Value : string.Empty;
         }
 
-        private static ImRaii.TreeNodeDisposable PrefixHeading(string prefix, string current)
+        private static ImRaii.IEndObject PrefixHeading(string prefix, string current)
         {
             var id = $"sounds_{prefix}";
             var name = prefix switch

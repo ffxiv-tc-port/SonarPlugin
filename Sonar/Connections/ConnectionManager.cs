@@ -29,9 +29,13 @@ namespace Sonar.Connections
     [ExportEx]
     public sealed partial class SonarConnectionManager : IDisposable, IAsyncDisposable
     {
-        private readonly SonarUrlManager _urls = new();
+        private readonly SonarUrlManager _urls;
 
-        private int _started;
+        // Guards _runCts, _disposed and every assignment of a socket to _socket, so that once
+        // Stop() returns no socket can become active until the next Start().
+        private readonly Lock _runLock = new();
+        private volatile CancellationTokenSource? _runCts;
+        private bool _disposed;
         private readonly CancellationTokenSource _cts = new();
 
         private volatile ISonarSocket? _socket;
@@ -46,11 +50,15 @@ namespace Sonar.Connections
         internal SonarConnectionManager(SonarClient client)
         {
             this.Client = client;
+            this._urls = new(client.Logger);
             this.Client.LogDebug(() => $"{nameof(SonarConnectionManager)} Initialized");
         }
 
         /// <summary>Connectivity status</summary>
         public bool IsConnected => this._socket is not null;
+
+        /// <summary>Whether connecting is enabled, i.e. between <see cref="Start"/> and <see cref="Stop"/>.</summary>
+        public bool IsStarted => this._runCts is { IsCancellationRequested: false };
 
         /// <summary>Number of connections currently active and ready to Sonar Server</summary>
         /// <remarks>Redundant connections are used in case of disconnects or connectivity problems</remarks>
@@ -97,9 +105,8 @@ namespace Sonar.Connections
         internal event Action<SonarConnectionManager, ISonarMessage>? MessageReceived;
         internal event Action<SonarConnectionManager, string>? TextReceived;
 
-        private async Task ConnectLoopTask()
+        private async Task ConnectLoopTask(CancellationToken token)
         {
-            var token = this._cts.Token;
             try
             {
                 // Initial delay
@@ -107,7 +114,7 @@ namespace Sonar.Connections
 
                 // Snapshot this._failCount and begin loop
                 var failCount = this._failCount;
-                while (!this._cts.IsCancellationRequested)
+                while (!token.IsCancellationRequested)
                 {
                     // Calculate when the next attempt should be made
                     var endTicks = System.Environment.TickCount + GetNextAttemptDelayMs(failCount);
@@ -118,7 +125,7 @@ namespace Sonar.Connections
                     // Attempting connecting if there is no active socket
                     if (this._socket is null)
                     {
-                        _ = this.ConnectAttemptTask();
+                        _ = this.ConnectAttemptTask(token).WithExceptionObserved();
                         failCount = Interlocked.Increment(ref this._failCount); // await boundary of ConnectAttemptTask() is after getting url so this is safe
                     }
                     else
@@ -131,7 +138,7 @@ namespace Sonar.Connections
                     if (this._sockets.Count > SocketsCapacity && this.TryGetNextSocket(out var socket, out _)) this.DisposeSocket(socket);
 
                     // Wait until next attempt interval
-                    while (!this._cts.IsCancellationRequested && this._failCount == failCount)
+                    while (!token.IsCancellationRequested && this._failCount == failCount)
                     {
                         var startTicks = System.Environment.TickCount;
                         var ticks = endTicks - startTicks;
@@ -147,15 +154,15 @@ namespace Sonar.Connections
             catch { /* Swallow */ }
         }
 
-        private Task ConnectAttemptTask()
+        private Task ConnectAttemptTask(CancellationToken runToken)
         {
             var url = this._urls.GetRandomUrl(this._reconnect || this._failCount >= FailureThreshold, this._reconnect);
             try
             {
                 return url.Type switch
                 {
-                    ConnectionType.WebSocket => this.ConnectionAttemptWebSocket(url),
-                    ConnectionType.SignalR => this.ConnectionAttemptSignalR(url),
+                    ConnectionType.WebSocket => this.ConnectionAttemptWebSocket(url, runToken),
+                    ConnectionType.SignalR => this.ConnectionAttemptSignalR(url, runToken),
                     _ => throw new ArgumentException($"Invalid Connection Type for {url.Key}: {url.Type}")
                 };
             }
@@ -179,11 +186,11 @@ namespace Sonar.Connections
         }
 
         [SuppressMessage("Reliability", "CA2000", Justification = "Ownership passed to SonarSocket.")]
-        private async Task ConnectionAttemptWebSocket(SonarUrl url)
+        private async Task ConnectionAttemptWebSocket(SonarUrl url, CancellationToken runToken)
         {
             Debug.Assert(url.Type is ConnectionType.WebSocket);
             using var cts = new CancellationTokenSource(ConnectTimeoutMs);
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(this._cts.Token, cts.Token);
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(runToken, cts.Token);
             var token = linkedCts.Token;
 
             var webSocket = new ClientWebSocket();
@@ -205,11 +212,11 @@ namespace Sonar.Connections
             }
         }
 
-        private async Task ConnectionAttemptSignalR(SonarUrl url)
+        private async Task ConnectionAttemptSignalR(SonarUrl url, CancellationToken runToken)
         {
             Debug.Assert(url.Type is ConnectionType.SignalR);
             using var cts = new CancellationTokenSource(ConnectTimeoutMs);
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(this._cts.Token, cts.Token);
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(runToken, cts.Token);
             var token = linkedCts.Token;
 
             var connection = new HubConnectionBuilder()
@@ -248,12 +255,22 @@ namespace Sonar.Connections
             }
 
             // Try getting an available socket if current active socket is null
-            if (this._socket is null && this.TryGetNextSocket(out socket, out var info) && Interlocked.CompareExchange(ref this._socket, socket, null) == null)
+            if (this._socket is null && this.TryActivateNextSocket(out socket, out var info))
             {
                 this.Client.LogInformation(() => $"Sonar Connected (Connection ID: {info.Id} | Type: {info.Type}{(info.Url.Proxy ? $" | Proxy" : string.Empty)})");
                 this.ConnectedInternal?.Invoke(this, socket, info.Id!.Value);
                 if (this.Connected is not null) _ = Task.Run(() => this.Connected?.SafeInvoke(this, info.Id!.Value));
             }
+        }
+
+        private bool TryActivateNextSocket([NotNullWhen(true)] out ISonarSocket socket, out SonarConnectionInformation info)
+        {
+            lock (this._runLock)
+            {
+                if (this.TryGetNextSocket(out socket, out info) && Interlocked.CompareExchange(ref this._socket, socket, null) == null) return true;
+            }
+            socket = null!; info = null!;
+            return false;
         }
 
         private void PrepareSocket(ISonarSocket socket, SonarUrl url)
@@ -270,14 +287,19 @@ namespace Sonar.Connections
         {
             try
             {
-                this._sockets.TryRemove(socket, out _);
-                socket.Disconnected -= this.SocketDisconnectedHandler;
-                socket.RawReceived -= this.SocketRawHandler;
-                socket.MessageReceivedAsync -= this.SocketMessageHandler;
-                socket.TextReceived -= this.SocketTextHandler;
+                this.DetachSocket(socket);
                 socket.Dispose();
             }
             catch { /* Swallow */ }
+        }
+
+        private void DetachSocket(ISonarSocket socket)
+        {
+            this._sockets.TryRemove(socket, out _);
+            socket.Disconnected -= this.SocketDisconnectedHandler;
+            socket.RawReceived -= this.SocketRawHandler;
+            socket.MessageReceivedAsync -= this.SocketMessageHandler;
+            socket.TextReceived -= this.SocketTextHandler;
         }
 
         private void SocketTextHandler(ISonarSocket socket, string arg2)
@@ -302,6 +324,7 @@ namespace Sonar.Connections
         private async Task SocketMessageHandler(ISonarSocket socket, ISonarMessage message)
         {
             if (this._socket == socket) this.MessageReceived?.Invoke(this, message);
+            else if (!this.IsStarted) this.DisposeSocket(socket); // Stopped mid-handshake: never answer the server
             else if (message is ServerReady ready && this._sockets.TryGetValue(socket, out var info))
             {
                 info.Id = ready.ConnectionId;
@@ -321,7 +344,7 @@ namespace Sonar.Connections
 
         private bool TryGetNextSocket([NotNullWhen(true)] out ISonarSocket socket, out SonarConnectionInformation info)
         {
-            if (!this._cts.IsCancellationRequested)
+            if (this.IsStarted)
             {
                 (socket, info) = this._sockets.FirstOrDefault(kvp => kvp.Key != this._socket && kvp.Value.Id.HasValue)!;
                 if (socket is null) return false;
@@ -333,6 +356,7 @@ namespace Sonar.Connections
 
         void IDisposable.Dispose()
         {
+            lock (this._runLock) this._disposed = true;
             this._cts.Cancel();
             foreach (var socket in this._sockets.Keys)
             {
@@ -345,6 +369,7 @@ namespace Sonar.Connections
 
         async ValueTask IAsyncDisposable.DisposeAsync()
         {
+            lock (this._runLock) this._disposed = true;
             await this._cts.CancelAsync().ConfigureAwait(false);
             await Task.WhenAll(this._sockets.Keys.Select(s => s.DisposeAsync().AsTask())).ConfigureAwait(false);
             this.Client.LogDebug(() => $"{nameof(SonarConnectionManager)} disposed (async)");

@@ -47,6 +47,8 @@ namespace SonarPlugin.GUI
     [SingletonReuse]
     public sealed class SonarMainWindow : IHostedService, IDisposable
     {
+        private static readonly HuntRank[] s_tabRanks = [.. Enum.GetValues<HuntRank>().Where(rank => rank != HuntRank.None && ((int)rank & 0x80) != 0x80).Reverse().Prepend(HuntRank.None)];
+
         private bool _visible; // used as ref
 
         [SuppressMessage("Minor Code Smell", "S2292", Justification = "Backing field is used with ref")]
@@ -77,7 +79,7 @@ namespace SonarPlugin.GUI
         private static Vector2 iconSize = new(16, 16);
         private const float detailLabelOffset = 100.0f;
 
-        private readonly IDalamudTextureWrap _redFlag;
+        private IDalamudTextureWrap _redFlag;
 
         public SonarMainWindow(SonarPlugin plugin, SonarClient client, RelayTrackerViews views, HuntNotifier huntsNotifier, FateNotifier fateNotifier, AetheryteManager aetherytes, MapTextureProvider mapTextures, ResourceHelper resources, PlaceholderFormatter formatter, IUiBuilder ui, IGameGui gameGui, IFramework framework, IDalamudPluginInterface pluginInterface, IPluginLog logger)
         {
@@ -97,11 +99,35 @@ namespace SonarPlugin.GUI
             this.Logger = logger;
 
             this._visible = this.Plugin.Configuration.OverlayVisibleByDefault;
-            this._redFlag = this.Resources.LoadIcon("redflag.png");
+
+            // Use a cheap placeholder immediately; the real icon is decoded off the main thread
+            // and swapped in once ready, so texture decode/GPU upload never stalls the ctor (and plugin load).
+            this._redFlag = this.Resources.LoadFallbackIcon();
+            _ = this.LoadRedFlagIconAsync();
 
             this.Logger.Information("Sonar Main Overlay Initialized");
 
             this.PluginInterface.UiBuilder.OpenMainUi += this.OpenWindow;
+        }
+
+        private async Task LoadRedFlagIconAsync()
+        {
+            try
+            {
+                var icon = await this.Resources.LoadIconAsync("redflag.png").ConfigureAwait(false);
+                var old = this._redFlag;
+                // Publish on the framework thread so the swap can't race a concurrent Draw()
+                // (which also runs on the framework/render thread) mid-frame.
+                await this.Framework.RunOnFrameworkThread(() =>
+                {
+                    this._redFlag = icon;
+                    old.Dispose();
+                }).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                this.Logger.Error(ex, "Failed to load red flag icon asynchronously");
+            }
         }
 
         private void OpenWindow()
@@ -159,14 +185,15 @@ namespace SonarPlugin.GUI
                 ImGui.BeginChild("###SonarTabBarWindow", (new Vector2(0, 24)) * ImGui.GetIO().FontGlobalScale, false, ImGuiWindowFlags.AlwaysAutoResize | this.TabBarFlags);
                 if (ImGui.BeginTabBar("###SonarTabBar", ImGuiTabBarFlags.None))
                 {
-                    var ranks = Enum.GetValues<HuntRank>();
-                    foreach (var rank in ranks.Where(rank => rank != HuntRank.None && ((int)rank & 0x80) != 0x80).Reverse().Prepend(HuntRank.None))
+                    foreach (var rank in s_tabRanks)
                     {
                         if (!this.Plugin.Configuration.AllSRankSettings && (rank == HuntRank.SS || rank == HuntRank.SSMinion)) continue;
 
                         // TODO: Eventually localize these enum strings
-                        var tabText = rank == HuntRank.None ? $" {MainWindowLoc.AllTab.GetLocString()} ###SonarAllTab" : $" {rank.GetLocString()} ###Sonar{RelayType.Hunt}{rank}Tab";
-                        if (ImGui.BeginTabItem(tabText))
+                        var tabOpen = rank == HuntRank.None
+                            ? ImGui.BeginTabItem($" {MainWindowLoc.AllTab.GetLocString()} ###SonarAllTab")
+                            : ImGui.BeginTabItem($" {rank.GetLocString()} ###Sonar{RelayType.Hunt}{rank}Tab");
+                        if (tabOpen)
                         {
                             ImGui.EndTabItem();
                             this._huntRank = rank;
@@ -202,6 +229,15 @@ namespace SonarPlugin.GUI
         {
             if (!this.IsVisible) return false;
             if (!Monitor.TryEnter(this._statesLock, force ? -1 : 0)) return false;
+
+            // Monitor.Exit only runs in the finally below, so unlike a lock statement the catch
+            // body still holds _statesLock. Logger goes through Dalamud's Serilog sink (file I/O
+            // plus locks of its own), so what to write is recorded here and written once the lock
+            // has been released.
+            Exception? pendingError = null;
+#if DEBUG
+            string? pendingTiming = null;
+#endif
 
             try
             {
@@ -245,18 +281,23 @@ namespace SonarPlugin.GUI
 
 #if DEBUG
                 stopwatch.Stop();
-                this.Logger.Debug($"Tracker queries took {stopwatch.Elapsed.TotalMilliseconds}ms (Count: {this._states.Count})");
+                pendingTiming = $"Tracker queries took {stopwatch.Elapsed.TotalMilliseconds}ms (Count: {this._states.Count})";
 #endif
 
             }
             catch (Exception ex)
             {
-                this.Logger.Error($"{ex}");
+                pendingError = ex;
             }
             finally
             {
                 Monitor.Exit(this._statesLock);
             }
+
+#if DEBUG
+            if (pendingTiming is not null) this.Logger.Debug(pendingTiming);
+#endif
+            if (pendingError is not null) this.Logger.Error($"{pendingError}");
             return true;
         }
 

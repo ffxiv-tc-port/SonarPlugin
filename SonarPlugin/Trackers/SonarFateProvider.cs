@@ -48,6 +48,21 @@ namespace SonarPlugin.Trackers
 
         private List<uint> _nextFateIds = [];
         private List<uint> _lastFateIds = [];
+        private readonly HashSet<uint> _seenFateIds = [];
+
+        // One relay per fate, refilled every frame. FeedTransientRelay copies whatever the tracker keeps,
+        // so these are never stored or sent; framework thread only.
+        private readonly Dictionary<uint, FateRelay> _relays = [];
+
+        private FateRelay GetRelay(uint id, uint worldId, uint zoneId, uint instanceId)
+        {
+            if (!this._relays.TryGetValue(id, out var relay) || !relay.WorldZoneInstanceEquals(worldId, zoneId, instanceId))
+            {
+                this._relays[id] = relay = new FateRelay() { Id = id, WorldId = worldId, ZoneId = zoneId, InstanceId = instanceId };
+            }
+            return relay;
+        }
+
         private unsafe void FrameworkTick(SonarFramework framework)
         {
             // Don't proceed if the structures aren't ready
@@ -89,30 +104,33 @@ namespace SonarPlugin.Trackers
                 if (position.X is 0 && position.Y is 0 && position.Z is 0) continue;
 
                 currentFateIds.Add(id);
-                this.Tracker.FeedRelay(new FateRelay()
-                {
-                    Id = id,
-                    WorldId = worldId,
-                    ZoneId = zoneId,
-                    InstanceId = instanceId,
-                    Coords = position.SwapYZ(),
-                    StartTime = startTimeEpoch * EarthSecond,
-                    Duration = duration * EarthSecond,
-                    Progress = fate->Progress,
-                    Status = state.ToSonarFateStatus(),
-                    Players = this.Players.GetCount(position),
-                    CheckTimestamp = timestamp ??= UnixTimeHelper.SyncedUnixNow,
-                    Bonus = fate->IsBonus,
-                });
+                var relay = this.GetRelay(id, worldId, zoneId, instanceId);
+                relay.Coords = position.SwapYZ();
+                relay.StartTime = startTimeEpoch * EarthSecond;
+                relay.Duration = duration * EarthSecond;
+                relay.Progress = fate->Progress;
+                relay.Status = state.ToSonarFateStatus();
+                relay.Players = this.Players.GetCount(position);
+                relay.CheckTimestamp = timestamp ??= UnixTimeHelper.SyncedUnixNow;
+                relay.Bonus = fate->IsBonus;
+                this.Tracker.FeedTransientRelay(relay);
             }
 
 
             // Determine and mark disappeared fates as failed
             var lastFateIds = this._lastFateIds;
-            var missingFates = lastFateIds.Except(currentFateIds);
             var fateStates = this.Tracker.Data.States;
-            foreach (var fateId in missingFates)
+            // Same algorithm as lastFateIds.Except(currentFateIds), without the per-tick iterator and set.
+            var seenFateIds = this._seenFateIds;
+            seenFateIds.Clear();
+            if (lastFateIds.Count != 0)
             {
+                foreach (var id in currentFateIds) seenFateIds.Add(id);
+            }
+            foreach (var fateId in lastFateIds)
+            {
+                if (!seenFateIds.Add(fateId)) continue;
+                this._relays.Remove(fateId);
                 var fateKey = IndexUtils.GetWorldZoneInstanceIndexKey(worldId, fateId, instanceId); // NOTE: Key formats are the same
                 var fateState = fateStates.GetValueOrDefault(fateKey);
                 if (fateState is null) continue;
@@ -129,6 +147,7 @@ namespace SonarPlugin.Trackers
 
         Fail:
             this._lastFateIds.Clear();
+            this._relays.Clear();
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
