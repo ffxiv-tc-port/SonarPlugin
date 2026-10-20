@@ -168,13 +168,13 @@ namespace SonarPlugin.GUI
                     ImGui.Unindent();
                 }
                 if (ImGui.Button(Loc.Localize("SupportCloseButton", "Close"))) this._responseVisible = false;
+                ImGui.EndPopup();
             }
             else
             {
                 ImGui.SetWindowFocus(this.WindowName);
                 ImGui.OpenPopup(this.modalTitleWithId);
             }
-            ImGui.End();
         }
 
         public void ResultCallback(SupportResponse response)
