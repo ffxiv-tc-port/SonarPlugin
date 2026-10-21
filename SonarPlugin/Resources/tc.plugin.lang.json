@@ -13,7 +13,7 @@
   "Config.Contribute.Tooltip": "必須貢獻回報，才能接收其他 Sonar 使用者的回報。\n若關閉，Sonar 將以本機模式繼續運作：你只看得到自己遊戲內偵測到的內容，不會收到他人的回報。",
   "Config.ReceiveJurisdiction": "接收範圍",
   "Config.Server.Connect": "連線 Sonar 伺服器（接收與分享危險標的／F.A.T.E. 回報）",
-  "Config.Server.ConnectTooltip": "開啟：連線 Sonar 伺服器並接收其他 Sonar 使用者的回報。連線期間會送出：\n- 角色名稱、原始世界、角色 ID 的雜湊值\n- 目前所在的世界、地圖、副本區與座標\n- 雜湊過的硬體識別碼、伺服器配發給這份安裝的用戶端 ID\n- 版本資訊（Sonar、插件、遊戲、Dalamud、作業系統）與回報貢獻設定\n- 你偵測到的危險標的／F.A.T.E.（位置、HP、附近玩家人數），只在開啟回報貢獻時送出\n支援視窗只有在你自己按下送出時，才會送出你填寫的內容。\n關閉：不送出任何資料，只顯示你自己遊戲裡偵測到的危險標的與 F.A.T.E.。",
+  "Config.Server.ConnectTooltip": "開啟：連線 Sonar 伺服器並接收其他 Sonar 使用者的回報。連線期間會送出：\n- 角色名稱、原始世界、角色 ID 的雜湊值\n- 目前所在的世界、地圖、副本區與座標\n- 伺服器配發給這份安裝的用戶端 ID\n- 版本資訊（Sonar、插件、遊戲、Dalamud）與回報貢獻設定\n- 你偵測到的危險標的／F.A.T.E.（位置、HP、附近玩家人數），只在開啟回報貢獻時送出\n支援視窗只有在你自己按下送出時，才會送出你填寫的內容。\n關閉：不送出任何資料，只顯示你自己遊戲裡偵測到的危險標的與 F.A.T.E.。",
   "Config.Server.DisabledStatus": "未連線（已在設定關閉）",
   "Config.TrackAll.Fates": "追蹤全部 F.A.T.E.",
   "Config.TrackAll.Hunts": "追蹤全部危險標的",
