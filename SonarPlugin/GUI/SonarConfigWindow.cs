@@ -71,6 +71,8 @@ namespace SonarPlugin.GUI
         private readonly Tasker _tasker = new();
 
         private readonly string[] _chatTypes;
+        private string[] _chatTypeLabels = [];
+        private LocalizationPreset _chatTypeLabelsPreset = LocalizationPreset.Undefined;
         private string fateSearchText = string.Empty;
 
         private List<FateRow> filteredFateData;
@@ -125,6 +127,17 @@ namespace SonarPlugin.GUI
                 .ToList();
 
             this.PluginInterface.UiBuilder.OpenConfigUi += this.OpenConfig;
+        }
+
+        private string[] GetChatTypeLabels()
+        {
+            var preset = this.Plugin.Configuration.Localization.Preset;
+            if (this._chatTypeLabelsPreset != preset || this._chatTypeLabels.Length != this._chatTypes.Length)
+            {
+                this._chatTypeLabels = [.. this._chatTypes.Select(n => XivChatTypeLoc.GetDisplayName(n, preset))];
+                this._chatTypeLabelsPreset = preset;
+            }
+            return this._chatTypeLabels;
         }
 
         private void OpenConfig()
@@ -479,11 +492,11 @@ namespace SonarPlugin.GUI
                     {
                         using var indent2 = ImRaii.PushIndent();
                         // TODO: might need to do extra checks here and default to Echo channel on failure.
-                        // TODO: Chat types localization
+                        var chatLabels = this.GetChatTypeLabels();
                         var currentChat = XivChatTypeExtensions.GetDetails(this.Plugin.Configuration.HuntOutputChannel)?.FancyName ?? this.Plugin.Configuration.HuntOutputChannel.ToString();
                         var selectedChat = Array.IndexOf(this._chatTypes, currentChat);
 
-                        if (ImGui.Combo("###chatTypes", ref selectedChat, this._chatTypes, this._chatTypes.Length))
+                        if (ImGui.Combo("###chatTypes", ref selectedChat, chatLabels, chatLabels.Length))
                         {
                             this._save = true;
                             var value = XivChatTypeUtils.GetValueFromInfoAttribute(this._chatTypes[selectedChat]);
@@ -772,11 +785,11 @@ namespace SonarPlugin.GUI
                     {
                         using var indent2 = ImRaii.PushIndent();
                         // TODO: might need to do extra checks here and default to Echo channel on failure.
-                        // TODO: Chat types localization
+                        var chatLabels = this.GetChatTypeLabels();
 
                         var currentChat = XivChatTypeExtensions.GetDetails(this.Plugin.Configuration.FateOutputChannel)?.FancyName ?? this.Plugin.Configuration.FateOutputChannel.ToString();
                         var selectedChat = Array.IndexOf(this._chatTypes, currentChat);
-                        if (ImGui.Combo("###chatTypes", ref selectedChat, this._chatTypes, this._chatTypes.Length))
+                        if (ImGui.Combo("###chatTypes", ref selectedChat, chatLabels, chatLabels.Length))
                         {
                             this._save = true;
                             var value = XivChatTypeUtils.GetValueFromInfoAttribute(this._chatTypes[selectedChat]);

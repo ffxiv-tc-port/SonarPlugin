@@ -359,6 +359,9 @@
   "SonarDisconnectedTooltip": {
     "message": "Sonar 將持續自動嘗試重新連線"
   },
+  "SonarLoadCommandsWarning": {
+    "message": "警告：/sonarload、/sonarunload 與 /sonarreload 尚未修復！請改用 /sonaron、/sonaroff、/sonarenable 與 /sonardisable。"
+  },
   "SonarLogLevelDebug": {
     "message": "偵錯"
   },
@@ -461,8 +464,17 @@
   "TrackerCongratulations": {
     "message": "恭喜你發現了這個！"
   },
+  "TrackerCounts": {
+    "message": "危險標的：{0} | F.A.T.E.：{1}"
+  },
+  "TrackerIndexKey": {
+    "message": "索引鍵：{0}"
+  },
   "TrackerUnderDevelopment": {
     "message": "目前這個視窗還沒有什麼實用的功能，我會在下個版本繼續開發。在那之前，歡迎先體驗篩選選擇器以及危險標的/F.A.T.E. 的數量統計"
+  },
+  "TrackerWindowTitle": {
+    "message": "Sonar 追蹤器（開發中！！！）"
   },
   "UnknownText": {
     "message": "未知"

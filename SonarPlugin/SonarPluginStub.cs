@@ -74,21 +74,23 @@ namespace SonarPlugin
             Task.Factory.StartNew(this.InitializeSonar, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
+        private static string LoadCommandsWarning => CheapLoc.Loc.Localize("SonarLoadCommandsWarning", "WARNING: /sonarload, /sonarunload and /sonarreload are not yet fixed! Use /sonaron, /sonaroff, /sonarenable and /sonardisable instead.");
+
         private void SonarLoadCommand(string? _ = null, string? __ = null)
         {
-            this.PrintErrorOnFramework("WARNING: /sonarload, /sonarunload and /sonarreload are not yet fixed! Use /sonaron, /sonaroff, /sonarenable and /sonardisable instead.");
+            this.PrintErrorOnFramework(LoadCommandsWarning);
             Task.Factory.StartNew(this.InitializeSonar, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
         private void SonarUnloadCommand(string? _ = null, string? __ = null)
         {
-            this.PrintErrorOnFramework("WARNING: /sonarload, /sonarunload and /sonarreload are not yet fixed! Use /sonaron, /sonaroff, /sonarenable and /sonardisable instead.");
+            this.PrintErrorOnFramework(LoadCommandsWarning);
             Task.Factory.StartNew(this.DestroySonar, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
         private void SonarReloadCommand(string? _ = null, string? __ = null)
         {
-            this.PrintErrorOnFramework("WARNING: /sonarload, /sonarunload and /sonarreload are not yet fixed! Use /sonaron, /sonaroff, /sonarenable and /sonardisable instead.");
+            this.PrintErrorOnFramework(LoadCommandsWarning);
 #if !DEBUG
             return; // TODO: Remove once fixed
 #endif

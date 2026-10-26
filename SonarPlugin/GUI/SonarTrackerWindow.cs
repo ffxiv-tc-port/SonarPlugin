@@ -29,7 +29,7 @@ namespace SonarPlugin.GUI
         private IRelayTracker<HuntRelay> Hunts { get; }
         private IRelayTracker<FateRelay> Fates { get; }
 
-        public SonarTrackerWindow(WindowSystem windows, IRelayTracker<HuntRelay> hunts, IRelayTracker<FateRelay> fates, Container container) : base("Sonar Tracker (UNDER DEVELOPMENT!!!)") // TODO
+        public SonarTrackerWindow(WindowSystem windows, IRelayTracker<HuntRelay> hunts, IRelayTracker<FateRelay> fates, Container container) : base($"{CheapLoc.Loc.Localize("TrackerWindowTitle", "Sonar Tracker (UNDER DEVELOPMENT!!!)")}###SonarTracker") // TODO
         {
             this._indexWidget = container.Resolve<IndexSelectionWidget>();
             this.Windows = windows;
@@ -41,8 +41,8 @@ namespace SonarPlugin.GUI
         public override void Draw()
         {
             this._indexWidget.DrawBreadcrumb();
-            ImGui.Text($"Index key: {this._indexWidget.IndexKey}");
-            ImGui.Text($"Hunts: {this.Hunts.Data.GetIndexStates(this._indexWidget.IndexKey).Count} | Fates: {this.Fates.Data.GetIndexStates(this._indexWidget.IndexKey).Count}");
+            ImGui.Text(string.Format(CheapLoc.Loc.Localize("TrackerIndexKey", "Index key: {0}"), this._indexWidget.IndexKey));
+            ImGui.Text(string.Format(CheapLoc.Loc.Localize("TrackerCounts", "Hunts: {0} | Fates: {1}"), this.Hunts.Data.GetIndexStates(this._indexWidget.IndexKey).Count, this.Fates.Data.GetIndexStates(this._indexWidget.IndexKey).Count));
             ImGui.Spacing();
             ImGui.Text(CheapLoc.Loc.Localize("TrackerCongratulations", "Congratulations finding this!"));
             ImGui.TextWrapped(CheapLoc.Loc.Localize("TrackerUnderDevelopment", "Right now there's nothing useful in this window but I'll be working on this next release. In the meantime enjoy the filtering selector and hunt/fates counts"));

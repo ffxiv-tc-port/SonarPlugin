@@ -85,9 +85,9 @@ namespace SonarDiagnostics
                     this._container.Resolve<DnsWindow>().Toggle();
                     break;
                 case "help":
-                    this.Chat.Print($"{command}: Open / Close Sonar Diagnostics window");
-                    this.Chat.Print($"{command} dns: Open / Close DNS Tests window");
-                    this.Chat.Print($"{command} help: Show this help message");
+                    this.Chat.Print(string.Format(Loc.Localize("DiagHelpMain", "{0}: Open / Close Sonar Diagnostics window"), command));
+                    this.Chat.Print(string.Format(Loc.Localize("DiagHelpDns", "{0} dns: Open / Close DNS Tests window"), command));
+                    this.Chat.Print(string.Format(Loc.Localize("DiagHelpHelp", "{0} help: Show this help message"), command));
                     break;
                 default:
                     this._container.Resolve<MainWindow>().Toggle();
