@@ -54,7 +54,7 @@
   "ConfigWindow.Header.Color": "Sonar 配色方案",
   "ConfigWindow.Header.Duty": "副本設定",
   "ConfigWindow.Header.Localization": "在地化設定",
-  "ConfigWindow.Header.Lodestone": "樂天福音驗證設定",
+  "ConfigWindow.Header.Lodestone": "Lodestone 驗證設定",
   "ConfigWindow.HideTitleBar": "隱藏標題列",
   "ConfigWindow.Hunts.ARankSounds": "A級音效",
   "ConfigWindow.Hunts.BRankSounds": "B級音效",
