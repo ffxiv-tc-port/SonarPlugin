@@ -33,7 +33,7 @@ namespace SonarPlugin.Managers
             this.Plugin = plugin;
             this.Logger = logger;
 
-            this.Logger.Info("Aetherytes Manager initialized");
+            this.Logger.Debug("Aetherytes Manager initialized");
         }
 
         public unsafe bool IsAttuned(uint aetheryteId)

@@ -30,7 +30,7 @@ namespace SonarPlugin
             this.Client = client;
             this.Logger = logger;
 
-            this.Logger.Info("Sonar Framework Initialized");
+            this.Logger.Debug("Sonar Framework Initialized");
         }
 
         public uint SafetyLevel { get; private set; }

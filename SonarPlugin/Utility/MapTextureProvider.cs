@@ -40,7 +40,7 @@ namespace SonarPlugin.Utility
             this.Textures = textures;
             this.Logger = logger;
 
-            this.Logger.Information("Map Texture Provider initialized");
+            this.Logger.Debug("Map Texture Provider initialized");
         }
 
         public IDalamudTextureWrap? GetMapTexture(string path)

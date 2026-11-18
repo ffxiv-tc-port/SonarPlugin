@@ -54,7 +54,7 @@ namespace SonarPlugin.Notifiers
             this.Framework = framework;
             this.Logger = logger;
 
-            this.Logger.Information("Hunt Notifier Initialized");
+            this.Logger.Debug("Hunt Notifier Initialized");
         }
 
         private void HuntFound(RelayState<HuntRelay> state)

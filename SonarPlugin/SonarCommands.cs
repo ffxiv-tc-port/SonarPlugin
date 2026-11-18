@@ -43,7 +43,7 @@ namespace SonarPlugin
             this.ConfigWindow = configWindow;
             this.TrackerWindow = trackerWindow;
             this.Logger = logger;
-            this.Logger.Information("Sonar Commands Initialized");
+            this.Logger.Debug("Sonar Commands Initialized");
         }
 
         [Command("/sonar")]

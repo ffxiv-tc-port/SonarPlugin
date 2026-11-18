@@ -105,7 +105,7 @@ namespace SonarPlugin.GUI
             this._redFlag = this.Resources.LoadFallbackIcon();
             _ = this.LoadRedFlagIconAsync();
 
-            this.Logger.Information("Sonar Main Overlay Initialized");
+            this.Logger.Debug("Sonar Main Overlay Initialized");
 
             this.PluginInterface.UiBuilder.OpenMainUi += this.OpenWindow;
         }

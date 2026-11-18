@@ -57,7 +57,7 @@ namespace SonarPlugin
 
         private SonarClient CreateSonarClient()
         {
-            this.Logger.LogInformation("Initializing Sonar");
+            this.Logger.LogDebug("Initializing Sonar");
             var startInfo = new SonarStartInfo()
             {
                 WorkingDirectory = Path.Join(this.PluginInterface.GetPluginConfigDirectory(), "Sonar"),

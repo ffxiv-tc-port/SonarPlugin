@@ -45,7 +45,7 @@ namespace SonarPlugin.Trackers
             this.Client = client;
             this.ClientState = clientState;
             this.Logger = logger;
-            this.Logger.Information("PlayerTracker initialized");
+            this.Logger.Debug("PlayerTracker initialized");
         }
 
         private unsafe void FrameworkTick(SonarFramework framework)

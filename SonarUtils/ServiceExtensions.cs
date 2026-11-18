@@ -25,14 +25,14 @@ namespace SonarUtils
             {
                 logger ??= NullLogger.Instance;
 
-                if (logger.IsEnabled(LogLevel.Information)) logger.LogInformation("Retreiving services to start");
+                if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Retreiving services to start");
                 var hostedServices = services.GetServices<IHostedService>();
                 var lifecycleServices = services.GetServices<IHostedLifecycleService>();
 
                 await Task.WhenAll(lifecycleServices.Select(service => Task.Run(async () =>
                 {
                     var name = service.GetType().Name;
-                    if (logger.IsEnabled(LogLevel.Information)) logger.LogInformation("Starting Hosted Lifecycle Service: {name}", name);
+                    if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Starting Hosted Lifecycle Service: {name}", name);
                     try
                     {
                         await service.StartingAsync(cancellationToken).ConfigureAwait(false);
@@ -46,7 +46,7 @@ namespace SonarUtils
                 await Task.WhenAll(hostedServices.Select(service => Task.Run(async () =>
                 {
                     var name = service.GetType().Name;
-                    if (logger.IsEnabled(LogLevel.Information)) logger.LogInformation("Starting Hosted Service: {name}", name);
+                    if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Starting Hosted Service: {name}", name);
                     try
                     {
                         await service.StartAsync(cancellationToken).ConfigureAwait(false);
@@ -60,7 +60,7 @@ namespace SonarUtils
                 await Task.WhenAll(lifecycleServices.Select(service => Task.Run(async () =>
                 {
                     var name = service.GetType().Name;
-                    if (logger.IsEnabled(LogLevel.Information)) logger.LogInformation("Started Hosted Lifecycle Service: {name}", name);
+                    if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Started Hosted Lifecycle Service: {name}", name);
                     try
                     {
                         await service.StartAsync(cancellationToken).ConfigureAwait(false);
@@ -71,7 +71,7 @@ namespace SonarUtils
                     }
                 }, cancellationToken))).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
-                if (logger.IsEnabled(LogLevel.Information)) logger.LogInformation("All services started");
+                if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("All services started");
             }
 
             /// <summary>Stop all <see cref="IHostedService"/>s while also signaling all <see cref="IHostedLifecycleService"/>s.</summary>
@@ -82,14 +82,14 @@ namespace SonarUtils
             {
                 logger ??= NullLogger.Instance;
 
-                if (logger.IsEnabled(LogLevel.Information)) logger.LogInformation("Retreiving services to stop");
+                if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Retreiving services to stop");
                 var hostedServices = services.GetServices<IHostedService>();
                 var lifecycleServices = services.GetServices<IHostedLifecycleService>();
 
                 await Task.WhenAll(lifecycleServices.Select(service => Task.Run(async () =>
                 {
                     var name = service.GetType().Name;
-                    if (logger.IsEnabled(LogLevel.Information)) logger.LogInformation("Stopping Hosted Lifecycle Service: {name}", name);
+                    if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Stopping Hosted Lifecycle Service: {name}", name);
                     try
                     {
                         await service.StoppingAsync(cancellationToken).ConfigureAwait(false);
@@ -103,7 +103,7 @@ namespace SonarUtils
                 await Task.WhenAll(hostedServices.Select(service => Task.Run(async () =>
                 {
                     var name = service.GetType().Name;
-                    if (logger.IsEnabled(LogLevel.Information)) logger.LogInformation("Stopping Hosted Service: {name}", name);
+                    if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Stopping Hosted Service: {name}", name);
                     try
                     {
                         await service.StopAsync(cancellationToken).ConfigureAwait(false);
@@ -117,7 +117,7 @@ namespace SonarUtils
                 await Task.WhenAll(lifecycleServices.Select(service => Task.Run(async () =>
                 {
                     var name = service.GetType().Name;
-                    if (logger.IsEnabled(LogLevel.Information)) logger.LogInformation("Stopped Hosted Lifecycle Service: {name}", name);
+                    if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("Stopped Hosted Lifecycle Service: {name}", name);
                     try
                     {
                         await service.StopAsync(cancellationToken).ConfigureAwait(false);
@@ -128,7 +128,7 @@ namespace SonarUtils
                     }
                 }, cancellationToken))).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
-                if (logger.IsEnabled(LogLevel.Information)) logger.LogInformation("All services stopped");
+                if (logger.IsEnabled(LogLevel.Debug)) logger.LogDebug("All services stopped");
             }
         }
 

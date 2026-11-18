@@ -48,7 +48,7 @@ namespace SonarPlugin.Trackers
             this.Logger = logger;
 
             // Initialization feedback
-            this.Logger.Information("MobTracker Initialized");
+            this.Logger.Debug("MobTracker Initialized");
         }
 
         // One relay per hunt actor, refilled every frame. FeedTransientRelay copies whatever the tracker keeps,

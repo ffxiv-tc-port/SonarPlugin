@@ -43,7 +43,7 @@ namespace SonarPlugin.Trackers
             this.Logger = logger;
 
             // Initialization feedback
-            this.Logger.Information("FateTracker Initialized");
+            this.Logger.Debug("FateTracker Initialized");
         }
 
         private List<uint> _nextFateIds = [];

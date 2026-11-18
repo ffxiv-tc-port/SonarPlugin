@@ -48,7 +48,7 @@ namespace SonarPlugin.Notifiers
             this.Sounds = sounds;
             this.Logger = logger;
 
-            this.Logger.Information("Fate Notifier Initialized");
+            this.Logger.Debug("Fate Notifier Initialized");
         }
 
         private void FateFound(RelayState<FateRelay> state)

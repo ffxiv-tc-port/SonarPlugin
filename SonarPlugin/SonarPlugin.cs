@@ -46,7 +46,7 @@ namespace SonarPlugin
         {
             this.LoadConfiguration();
 
-            this.Logger.Info("Setting up localization");
+            this.Logger.Debug("Setting up localization");
             EnumLocUtils.Setup(this.Configuration.Localization.DebugFallbacks);
 
             // TC fork: default new installs to the Traditional Chinese preset once; users may change language afterwards.
@@ -92,16 +92,16 @@ namespace SonarPlugin
                 EnumLocUtils.ApplyCheapLoc(this.Configuration.Localization.Preset);
             }
 
-            this.Logger.Info("SonarPlugin Resources:");
+            this.Logger.Debug("SonarPlugin Resources:");
             foreach (var resourceName in typeof(SonarPlugin).Assembly.GetManifestResourceNames())
             {
-                this.Logger.Info($" - {resourceName}");
+                this.Logger.Debug($" - {resourceName}");
             }
 
-            this.Logger.Info("Sonar Resources:");
+            this.Logger.Debug("Sonar Resources:");
             foreach (var resourceName in typeof(SonarClient).Assembly.GetManifestResourceNames())
             {
-                this.Logger.Info($" - {resourceName}");
+                this.Logger.Debug($" - {resourceName}");
             }
 
             this.PluginInterface.UiBuilder.Draw += this.Windows.Draw;

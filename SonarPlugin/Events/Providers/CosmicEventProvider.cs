@@ -52,7 +52,7 @@ namespace SonarPlugin.Events.Providers
                 .Select(zone => zone.Id)
                 .ToFrozenSet();
 
-            this.Logger.LogInformation("Cosmic event provider constructed");
+            this.Logger.LogDebug("Cosmic event provider constructed");
             this.Logger.LogDebug("Detected Cosmic Zones: {zones}", string.Join(", ", this._cosmicZoneIds.Select(zoneId => Database.Zones.TryGetValue(zoneId, out var zone) ? $"{zone.Name} ({zone.Id})" : $"{zoneId}")));
         }
 
