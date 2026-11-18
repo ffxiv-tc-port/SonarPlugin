@@ -153,6 +153,7 @@ namespace SonarPlugin
                 if (configuration is null)
                 {
                     if (isReset) throw new Exception($"Failed resetting configuration");
+                    this.BackupConfigBeforeReset("內容是空的或無法辨識");
                     this.ResetConfiguration();
                     return;
                 }
@@ -174,7 +175,28 @@ namespace SonarPlugin
             catch (Exception ex)
             {
                 this.Logger.Error($"Failed to load configuration: {ex}");
-                if (!isReset) this.ResetConfiguration();
+                if (!isReset)
+                {
+                    this.BackupConfigBeforeReset($"載入失敗（{ex.GetType().Name}）");
+                    this.ResetConfiguration();
+                }
+            }
+        }
+
+        // ResetConfiguration 會立刻用預設值整份覆寫設定檔（連 Dalamud 備份資料庫那份），所以原檔要在那之前留副本。
+        private void BackupConfigBeforeReset(string reason)
+        {
+            try
+            {
+                var file = this.PluginInterface.ConfigFile;
+                if (!file.Exists) return;
+                ConfigFileSafety.BackupUnreadable(file.FullName, reason,
+                    $"接著會用預設值整份覆寫 {file.Name}，這次全部設定使用預設值。",
+                    msg => this.Logger.Information("{Message}", msg));
+            }
+            catch (Exception e)
+            {
+                this.Logger.Error($"Failed to back up configuration before reset: {e}");
             }
         }
 
