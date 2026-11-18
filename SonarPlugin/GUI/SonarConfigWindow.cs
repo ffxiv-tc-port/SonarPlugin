@@ -73,6 +73,9 @@ namespace SonarPlugin.GUI
         private readonly string[] _chatTypes;
         private string[] _chatTypeLabels = [];
         private LocalizationPreset _chatTypeLabelsPreset = LocalizationPreset.Undefined;
+        // 只在繪圖執行緒讀寫；版本號先讀再建，建到一半語言又換也會在下一幀重建。
+        private string[]? _notifyModeLabels;
+        private int _notifyModeLabelsVersion;
         private string fateSearchText = string.Empty;
 
         private List<FateRow> filteredFateData;
@@ -127,6 +130,17 @@ namespace SonarPlugin.GUI
                 .ToList();
 
             this.PluginInterface.UiBuilder.OpenConfigUi += this.OpenConfig;
+        }
+
+        private string[] GetNotifyModeLabels()
+        {
+            var version = EnumLocUtils.CheapLocVersion;
+            if (this._notifyModeLabels is null || this._notifyModeLabelsVersion != version)
+            {
+                this._notifyModeLabels = EnumCheapLocExtensions.CheapLoc<NotifyMode>().Values.ToArray();
+                this._notifyModeLabelsVersion = version;
+            }
+            return this._notifyModeLabels;
         }
 
         private string[] GetChatTypeLabels()
@@ -604,7 +618,7 @@ namespace SonarPlugin.GUI
                 ImGui.Separator();
                 ImGui.Spacing();
 
-                SonarImGui.Combo($"{Loc.Localize("SSMinionNotificationMode", "SS Minion Notifications Mode")}", (int)this.Plugin.Configuration.SSMinionReportingMode, EnumCheapLocExtensions.CheapLoc<NotifyMode>().Values.ToArray(), value =>
+                SonarImGui.Combo($"{Loc.Localize("SSMinionNotificationMode", "SS Minion Notifications Mode")}", (int)this.Plugin.Configuration.SSMinionReportingMode, this.GetNotifyModeLabels(), value =>
                 {
                     this._save = true;
                     this.Plugin.Configuration.SSMinionReportingMode = (NotifyMode)value;

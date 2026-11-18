@@ -14,6 +14,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SonarPlugin.Utility
@@ -83,7 +84,13 @@ namespace SonarPlugin.Utility
                 Debugger.Break();
                 GC.KeepAlive(ex);
             }
+            Interlocked.Increment(ref s_cheapLocVersion);
         }
+
+        private static int s_cheapLocVersion;
+
+        /// <summary>每次 <see cref="ApplyCheapLoc"/> 跑完就加一；快取 CheapLoc 結果的地方比對它決定要不要重建。</summary>
+        public static int CheapLocVersion => Volatile.Read(ref s_cheapLocVersion);
 
         private static void SetupCore(bool debug)
         {
