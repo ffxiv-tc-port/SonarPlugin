@@ -63,11 +63,11 @@ jobs:
 
           # SQLitePCLRaw 等套件的 nuget 包會把所有平台的原生函式庫一起帶進輸出目錄，
           # 但這支外掛只在 Windows x64 的 Dalamud 上執行，其他平台的原生檔用不到。
-          # 只留 win／win-x64／browser（沒有就跳過；不點名其他資料夾一律刪，避免漏掉某個平台變體）。
+          # 只留 win／win-x64（沒有就跳過；不點名其他資料夾一律刪，避免漏掉某個平台變體）。
           $runtimesDir = Join-Path $outDir 'runtimes'
           if (Test-Path -LiteralPath $runtimesDir) {
               Get-ChildItem -LiteralPath $runtimesDir -Directory |
-                  Where-Object { $_.Name -notin @('win', 'win-x64', 'browser') } |
+                  Where-Object { $_.Name -notin @('win', 'win-x64') } |
                   Remove-Item -Recurse -Force
           }
       - name: Archive
