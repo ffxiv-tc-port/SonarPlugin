@@ -66,7 +66,7 @@ namespace SonarPlugin.Notifiers
         {
             if (type == XivChatType.None) type = this.Plugin.Configuration.FateOutputChannel;
             if (type == XivChatType.None) type = XivChatType.Echo;
-            var cwIcon = this.Plugin.Configuration.EnableGameChatCrossworldIcon && this.Client.Meta.PlayerPosition?.WorldId != relay.WorldId;
+            var cwIcon = this.Plugin.Configuration.EnableFateChatCrossworldIcon && this.Client.Meta.PlayerPosition?.WorldId != relay.WorldId;
 
             var builder = new SeStringBuilder();
             if (this.Plugin.Configuration.EnableFateChatItalicFont) builder.AddItalicsOn();
