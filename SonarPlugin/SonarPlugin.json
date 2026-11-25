@@ -1,8 +1,8 @@
 ﻿{
   "Author": "Sonar Team",
   "Name": "Sonar",
-  "Punchline": "自動傳送與接收狩獵任務及 FATE 情報。",
-  "Description": "自動傳送與接收狩獵任務及 FATE 情報。輸入 /sonar 開啟主視窗，/sonarconfig 進行設定。技術支援僅提供於 Sonar Support Discord。",
+  "Punchline": "追蹤危險標的與 F.A.T.E.，可接收其他玩家的回報。",
+  "Description": "偵測並提醒危險標的（狩獵怪物）與 F.A.T.E.，顯示在清單與追蹤器視窗；開啟連線後還能收到其他 Sonar 使用者的回報。\n- 音效與聊天訊息提醒\n- 「連線 Sonar 伺服器」預設關閉：關著時不連線、不送出任何資料，只顯示你自己遇到的\n- 「全域回報貢獻」預設關閉：要把你遇到的危險標的與 F.A.T.E. 回報出去，需另外開啟\n- 輸入 /sonar 開啟主視窗，/sonarconfig 開啟設定",
   "Changelog": "See https://news.ffxivsonar.com for more information",
   "InternalName": "SonarPlugin",
   "Tags": [
